@@ -145,8 +145,9 @@ class ProfileController extends Controller
     {
         $title = 'Tài khoản random đã mua';
         
+        $concatSql = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite' ? "('LEGACY-' || id)" : 'CONCAT("LEGACY-", id)';
         $orders = RandomCategoryAccount::select(
-                DB::raw('COALESCE(batch_id, CONCAT("LEGACY-", id)) as order_batch_id'),
+                DB::raw("COALESCE(batch_id, {$concatSql}) as order_batch_id"),
                 'random_category_id',
                 'buyer_id',
                 DB::raw('MAX(updated_at) as purchase_time'),

@@ -237,6 +237,14 @@
                                     @error('site_banner')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
+
+                                    <div class="mt-3">
+                                        <label class="form-label text-muted small fw-semibold">Hoặc dán trực tiếp link ảnh Banner (URL Online):</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="ti ti-link"></i></span>
+                                            <input type="url" name="site_banner_url" class="form-control" placeholder="Ví dụ: https://i.postimg.cc/... hoặc link ảnh bất kỳ">
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="mb-3 mt-3 bg-light p-3 rounded border">

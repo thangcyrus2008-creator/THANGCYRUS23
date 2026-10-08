@@ -188,6 +188,16 @@ class ConfigController extends Controller
                 config_set('site_banner', json_encode($allBanners));
             }
 
+            // Nhận thêm link ảnh banner trực tiếp nếu có
+            if ($request->filled('site_banner_url')) {
+                $oldBanners = json_decode(config_get('site_banner', '[]'), true) ?: [];
+                if (!is_array($oldBanners)) {
+                    $oldBanners = config_get('site_banner') ? [config_get('site_banner')] : [];
+                }
+                $oldBanners[] = trim($request->site_banner_url);
+                config_set('site_banner', json_encode(array_values($oldBanners)));
+            }
+
             // Xử lý xóa ảnh banner (từ view nếu có)
             if ($request->has('remove_banners') && is_array($request->remove_banners)) {
                 $currentBanners = json_decode(config_get('site_banner', '[]'), true);

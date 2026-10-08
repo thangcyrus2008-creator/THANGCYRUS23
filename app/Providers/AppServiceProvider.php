@@ -38,11 +38,23 @@ class AppServiceProvider extends ServiceProvider
         Builder::macro('adminFilter', function ($request) {
             $query = $this;
             $table = $query->getModel()->getTable();
-            $columns = Schema::getColumnListing($table);
+            $columns = [];
+            try {
+                $columns = Schema::getColumnListing($table);
+            } catch (\Throwable $e) {
+                try {
+                    $results = DB::select("PRAGMA table_info({$table})");
+                    $columns = array_map(function($col) {
+                        return is_object($col) ? $col->name : (is_array($col) ? $col['name'] : $col);
+                    }, $results);
+                } catch (\Throwable $e2) {
+                    $columns = ['id', 'name', 'title', 'username', 'email', 'code', 'transaction_id', 'content'];
+                }
+            }
 
             if ($request->filled('search')) {
                 $search = $request->search;
-                $searchFields = array_intersect($columns, ['id', 'name', 'title', 'username', 'email', 'code', 'transaction_id']);
+                $searchFields = array_intersect($columns, ['id', 'name', 'title', 'username', 'email', 'code', 'transaction_id', 'content']);
                 
                 if (!empty($searchFields)) {
                     $query->where(function($q) use ($search, $searchFields) {

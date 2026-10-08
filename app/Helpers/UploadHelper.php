@@ -44,6 +44,13 @@ class UploadHelper
     public static function upload(UploadedFile $file, string $directory, ?string $filename = null, bool $preserveFilename = false): string
     {
         try {
+            // Trên Vercel serverless (read-only filesystem), chuyển ảnh thành base64 data URI để lưu vĩnh viễn trong database
+            if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || env('VERCEL')) {
+                $mime = $file->getMimeType() ?: 'image/jpeg';
+                $data = base64_encode(file_get_contents($file->getRealPath()));
+                return 'data:' . $mime . ';base64,' . $data;
+            }
+
             // Đảm bảo thư mục tồn tại với quyền 0755
             self::ensureDirectoryExists('public/' . $directory);
 
