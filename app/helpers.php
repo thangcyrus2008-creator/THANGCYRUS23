@@ -95,25 +95,23 @@ if (!function_exists('config_get')) {
      */
     function config_get($key, $default = null)
     {
-        $cacheKey = 'config_' . $key;
+        static $memoryCache = null;
 
-        // Kiểm tra cache trước
-        try {
-            if (Cache::has($cacheKey)) {
-                return Cache::get($cacheKey);
+        if ($memoryCache === null) {
+            try {
+                $memoryCache = Cache::remember('all_system_configs', 3600, function () {
+                    return Config::pluck('value', 'key')->toArray();
+                });
+            } catch (\Throwable $e) {
+                try {
+                    $memoryCache = Config::pluck('value', 'key')->toArray();
+                } catch (\Throwable $e2) {
+                    $memoryCache = [];
+                }
             }
-        } catch (\Throwable $e) {}
+        }
 
-        // Nếu không có trong cache, lấy từ database
-        $config = Config::where('key', $key)->first();
-        $value = $config ? $config->value : $default;
-
-        // Lưu vào cache để sử dụng sau
-        try {
-            Cache::put($cacheKey, $value, now()->addDay());
-        } catch (\Throwable $e) {}
-
-        return $value;
+        return $memoryCache[$key] ?? $default;
     }
 }
 
@@ -132,9 +130,8 @@ if (!function_exists('config_set')) {
             ['value' => $value]
         );
 
-        // Cập nhật cache
         try {
-            Cache::put('config_' . $key, $value, now()->addDay());
+            Cache::forget('all_system_configs');
         } catch (\Throwable $e) {}
     }
 }

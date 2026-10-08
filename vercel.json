@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "regions": ["hnd1"],
   "framework": null,
   "buildCommand": "echo 'Build assets ready'",
   "functions": {
@@ -48,7 +49,7 @@
     "APP_DEBUG": "true",
     "VERCEL": "1",
     "LOG_CHANNEL": "stderr",
-    "CACHE_DRIVER": "array",
+    "CACHE_DRIVER": "file",
     "SESSION_DRIVER": "cookie",
     "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
     "BANK_EMAIL_SECRET": "ThangCyrusBankSecure2026",
