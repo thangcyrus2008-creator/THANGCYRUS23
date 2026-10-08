@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 110" width="520" height="110" fill="none">
+  <defs>
+    <!-- Gradient for Blue Swoosh/Stem -->
+    <linearGradient id="tcBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d6fee" />
+      <stop offset="60%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+
+    <!-- Gradient for Orange Wing -->
+    <linearGradient id="tcOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7a18" />
+      <stop offset="100%" stop-color="#ff5100" />
+    </linearGradient>
+
+    <!-- Gradient for Cyan Swoosh Arc -->
+    <linearGradient id="tcSwoosh" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="1" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.1" />
+    </linearGradient>
+
+    <!-- Gradient for Cyrus Text -->
+    <linearGradient id="cyrusGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="50%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+
+    <!-- Subtle drop shadow -->
+    <filter id="glow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- ICON SECTION (0 to 110) -->
+  <g transform="translate(10, 10)">
+    <!-- Blue Stem & Left T Top -->
+    <path d="M 12 18 C 22 8 36 6 52 6 L 68 6 L 50 42 L 64 42 L 40 92 C 34 92 28 85 30 78 L 44 46 L 28 46 L 10 76 C 5 72 2 64 6 54 L 14 36 L 4 36 C 2 28 5 22 12 18 Z" 
+          fill="url(#tcBlue)" filter="url(#glow)"/>
+
+    <!-- Orange Top Right Block -->
+    <path d="M 72 6 L 108 6 C 112 6 114 8 112 13 L 102 36 C 100 40 96 42 92 42 L 56 42 L 72 6 Z" 
+          fill="url(#tcOrange)" filter="url(#glow)"/>
+
+    <!-- Dynamic Speed Slash / Swoosh Arc -->
+    <path d="M 2 58 Q 40 22 96 18 Q 112 17 118 19" 
+          stroke="url(#tcSwoosh)" stroke-width="5" stroke-linecap="round" fill="none" />
+  </g>
+
+  <!-- TEXT SECTION (140 to 510) -->
+  <g transform="translate(136, 68)">
+    <!-- THANG in sleek solid bold -->
+    <text x="0" y="0" 
+          font-family="'Arial Black', 'Impact', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+          font-size="52" 
+          font-weight="900" 
+          letter-spacing="-1" 
+          fill="#111827">THANG</text>
+
+    <!-- CYRUS in fiery gaming gradient -->
+    <text x="210" y="0" 
+          font-family="'Arial Black', 'Impact', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+          font-size="52" 
+          font-weight="900" 
+          letter-spacing="-1" 
+          fill="url(#cyrusGrad)">CYRUS</text>
+  </g>
+
+  <!-- SUBTITLE SECTION -->
+  <g transform="translate(140, 94)">
+    <text x="0" y="0" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" 
+          font-size="14" 
+          font-weight="800" 
+          font-style="italic" 
+          letter-spacing="5" 
+          fill="#1d6fee">G A M I N G   S H O P</text>
+  </g>
+</svg>
