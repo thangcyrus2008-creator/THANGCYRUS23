@@ -26,6 +26,41 @@ use Illuminate\Support\Facades\Route;
 */
 require __DIR__ . '/auth.php';
 require __DIR__ . '/admin.php';
+
+Route::get('/debug-db-test', function() {
+    $results = [];
+    $results['base_path_ca'] = [
+        'path' => base_path('cacert.pem'),
+        'exists' => file_exists(base_path('cacert.pem')),
+        'size' => file_exists(base_path('cacert.pem')) ? filesize(base_path('cacert.pem')) : 0,
+    ];
+    $results['etc_pki'] = file_exists('/etc/pki/tls/certs/ca-bundle.crt');
+    $results['etc_ssl'] = file_exists('/etc/ssl/certs/ca-certificates.crt');
+    $results['openssl_version'] = defined('OPENSSL_VERSION_TEXT') ? OPENSSL_VERSION_TEXT : 'none';
+    $results['pdo_drivers'] = PDO::getAvailableDrivers();
+    
+    foreach ([
+        'no_opts' => [],
+        'ca_cacert' => [PDO::MYSQL_ATTR_SSL_CA => base_path('cacert.pem')],
+        'ca_cacert_no_verify' => [PDO::MYSQL_ATTR_SSL_CA => base_path('cacert.pem'), PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false],
+        'ca_pki' => file_exists('/etc/pki/tls/certs/ca-bundle.crt') ? [PDO::MYSQL_ATTR_SSL_CA => '/etc/pki/tls/certs/ca-bundle.crt'] : null,
+        'ca_ssl' => file_exists('/etc/ssl/certs/ca-certificates.crt') ? [PDO::MYSQL_ATTR_SSL_CA => '/etc/ssl/certs/ca-certificates.crt'] : null,
+    ] as $key => $opts) {
+        if ($opts === null) continue;
+        try {
+            $p = new PDO(
+                'mysql:host=gateway01.ap-northeast-1.prod.aws.tidbcloud.com;port=4000;dbname=shopgame',
+                '4P1KjX7GdBiCxjU.root',
+                '20skeWrgjQNU1UIo',
+                $opts
+            );
+            $results['connect_' . $key] = 'SUCCESS: ' . $p->query('SELECT 1')->fetchColumn();
+        } catch (\Throwable $e) {
+            $results['connect_' . $key] = 'ERROR: ' . $e->getMessage();
+        }
+    }
+    return response()->json($results);
+});
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/nhan-xet', [HomeController::class, 'reviews'])->name('reviews');
 Route::get('/cau-hoi-thuong-gap', [HomeController::class, 'faq'])->name('faq');
