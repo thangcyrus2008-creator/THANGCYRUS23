@@ -17,6 +17,14 @@ $app = new Illuminate\Foundation\Application(
 
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || env('VERCEL')) {
     $app->useStoragePath('/tmp/storage');
+    putenv('APP_PACKAGES_CACHE=/tmp/storage/bootstrap/packages.php');
+    putenv('APP_SERVICES_CACHE=/tmp/storage/bootstrap/services.php');
+    putenv('APP_CONFIG_CACHE=/tmp/storage/bootstrap/config.php');
+    putenv('APP_ROUTES_CACHE=/tmp/storage/bootstrap/routes.php');
+    putenv('APP_EVENTS_CACHE=/tmp/storage/bootstrap/events.php');
+    if (!is_dir('/tmp/storage/bootstrap')) {
+        @mkdir('/tmp/storage/bootstrap', 0755, true);
+    }
 }
 
 /*

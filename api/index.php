@@ -1,8 +1,21 @@
 <?php
 
 // Ensure /tmp storage directories exist on Vercel serverless environment
-if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL'])) {
+if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
+    putenv('APP_PACKAGES_CACHE=/tmp/storage/bootstrap/packages.php');
+    putenv('APP_SERVICES_CACHE=/tmp/storage/bootstrap/services.php');
+    putenv('APP_CONFIG_CACHE=/tmp/storage/bootstrap/config.php');
+    putenv('APP_ROUTES_CACHE=/tmp/storage/bootstrap/routes.php');
+    putenv('APP_EVENTS_CACHE=/tmp/storage/bootstrap/events.php');
+
+    $_ENV['APP_PACKAGES_CACHE'] = '/tmp/storage/bootstrap/packages.php';
+    $_ENV['APP_SERVICES_CACHE'] = '/tmp/storage/bootstrap/services.php';
+    $_ENV['APP_CONFIG_CACHE'] = '/tmp/storage/bootstrap/config.php';
+    $_ENV['APP_ROUTES_CACHE'] = '/tmp/storage/bootstrap/routes.php';
+    $_ENV['APP_EVENTS_CACHE'] = '/tmp/storage/bootstrap/events.php';
+
     $storageDirs = [
+        '/tmp/storage/bootstrap',
         '/tmp/storage/framework/views',
         '/tmp/storage/framework/sessions',
         '/tmp/storage/framework/cache',

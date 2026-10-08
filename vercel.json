@@ -54,6 +54,11 @@
     "BANK_EMAIL_SECRET": "ThangCyrusBankSecure2026",
     "BANK_PREFIX": "naptien",
     "DB_CONNECTION": "sqlite",
-    "DB_DATABASE": "/tmp/database.sqlite"
+    "DB_DATABASE": "/tmp/database.sqlite",
+    "APP_PACKAGES_CACHE": "/tmp/storage/bootstrap/packages.php",
+    "APP_SERVICES_CACHE": "/tmp/storage/bootstrap/services.php",
+    "APP_CONFIG_CACHE": "/tmp/storage/bootstrap/config.php",
+    "APP_ROUTES_CACHE": "/tmp/storage/bootstrap/routes.php",
+    "APP_EVENTS_CACHE": "/tmp/storage/bootstrap/events.php"
   }
 }
