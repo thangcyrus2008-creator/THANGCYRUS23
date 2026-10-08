@@ -1,5 +1,12 @@
 <?php
 
+// Prevent browser from caching dynamic pages
+if (!headers_sent()) {
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 // Ensure /tmp storage directories exist on Vercel serverless environment
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     putenv('APP_PACKAGES_CACHE=/tmp/storage/bootstrap/packages.php');
