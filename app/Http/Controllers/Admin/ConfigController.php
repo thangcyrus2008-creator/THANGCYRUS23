@@ -134,12 +134,12 @@ class ConfigController extends Controller
             'email' => 'nullable|email|max:255',
             'min_withdraw_gold' => 'nullable|integer|min:0',
             'max_withdraw_gold' => 'nullable|integer|gte:min_withdraw_gold',
-            'site_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'site_logo_footer' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'site_share_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'site_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'site_logo_footer' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'site_share_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
             'site_banner' => 'nullable|array',
-            'site_banner.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            'site_favicon' => 'nullable|mimes:ico,png|max:1024',
+            'site_banner.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'site_favicon' => 'nullable|mimes:ico,png,webp|max:5120',
         ]);
 
         try {
@@ -169,23 +169,21 @@ class ConfigController extends Controller
 
             // Xử lý upload mảng ảnh banner
             if ($request->hasFile('site_banner')) {
-                // Get old banners
-                $oldBanners = json_decode(config_get('site_banner', '[]'), true);
+                $oldBanners = json_decode(config_get('site_banner', '[]'), true) ?: [];
                 if (!is_array($oldBanners)) {
-                    if (config_get('site_banner')) {
-                        $oldBanners = [config_get('site_banner')];
-                    } else {
-                        $oldBanners = [];
-                    }
+                    $oldBanners = config_get('site_banner') ? [config_get('site_banner')] : [];
+                }
+                $oldBanners = array_values(array_filter($oldBanners, fn($b) => !empty($b) && !str_contains($b, '123nick.vn')));
+                
+                $newUrls = UploadHelper::uploadMultiple($request->file('site_banner'), self::UPLOAD_DIR);
+                
+                if ($request->boolean('replace_all_banners') || empty($oldBanners)) {
+                    $allBanners = $newUrls;
+                } else {
+                    $allBanners = array_merge($oldBanners, $newUrls);
                 }
                 
-                // Determine if we append or replace. The UI might just upload new ones to append, or replace all.
-                // Let's replace all if they upload new ones, but maybe we should let them keep old ones.
-                // For simplicity, let's append new ones to the existing array.
-                $newUrls = UploadHelper::uploadMultiple($request->file('site_banner'), self::UPLOAD_DIR);
-                $allBanners = array_merge($oldBanners, $newUrls);
-                
-                config_set('site_banner', json_encode($allBanners));
+                config_set('site_banner', json_encode(array_values($allBanners)));
             }
 
             // Nhận thêm link ảnh banner trực tiếp nếu có
@@ -194,8 +192,14 @@ class ConfigController extends Controller
                 if (!is_array($oldBanners)) {
                     $oldBanners = config_get('site_banner') ? [config_get('site_banner')] : [];
                 }
-                $oldBanners[] = trim($request->site_banner_url);
-                config_set('site_banner', json_encode(array_values($oldBanners)));
+                $oldBanners = array_values(array_filter($oldBanners, fn($b) => !empty($b) && !str_contains($b, '123nick.vn')));
+
+                if ($request->boolean('replace_all_banners')) {
+                    $allBanners = [trim($request->site_banner_url)];
+                } else {
+                    $allBanners = array_merge($oldBanners, [trim($request->site_banner_url)]);
+                }
+                config_set('site_banner', json_encode(array_values($allBanners)));
             }
 
             // Xử lý xóa ảnh banner (từ view nếu có)

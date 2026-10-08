@@ -245,6 +245,13 @@
                                             <input type="url" name="site_banner_url" class="form-control" placeholder="Ví dụ: https://i.postimg.cc/... hoặc link ảnh bất kỳ">
                                         </div>
                                     </div>
+
+                                    <div class="form-check form-switch mt-3 p-2 bg-light rounded border">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="replace_all_banners" value="1" id="replaceAllBanners" checked>
+                                        <label class="form-check-label fw-bold text-primary" for="replaceAllBanners">
+                                            <i class="ti ti-refresh"></i> Thay thế toàn bộ banner cũ bằng banner mới vừa tải lên
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div class="mb-3 mt-3 bg-light p-3 rounded border">
