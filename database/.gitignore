@@ -1,1 +1,2 @@
-*.sqlite*
+# Allow database.sqlite for serverless deploy
+!.gitignore
