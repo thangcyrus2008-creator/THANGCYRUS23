@@ -42,12 +42,16 @@
     }
   ],
   "env": {
+    "APP_NAME": "THANGCYRUS GAMER",
     "APP_ENV": "production",
+    "APP_KEY": "base64:LbpZQEtzRuqDV9vkqxlzzutXSU43bqdZtqJKDBgLSb8=",
     "APP_DEBUG": "true",
     "VERCEL": "1",
     "LOG_CHANNEL": "stderr",
     "CACHE_DRIVER": "array",
     "SESSION_DRIVER": "cookie",
-    "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+    "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
+    "BANK_EMAIL_SECRET": "ThangCyrusBankSecure2026",
+    "BANK_PREFIX": "naptien"
   }
 }
