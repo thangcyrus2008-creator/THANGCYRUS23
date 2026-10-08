@@ -28,11 +28,13 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     }
 
     // Prepare SQLite database in writable /tmp directory
-    if (!file_exists('/tmp/database.sqlite')) {
-        $sourceDb = __DIR__ . '/../database/database.sqlite';
-        if (file_exists($sourceDb)) {
+    $sourceDb = __DIR__ . '/../database/database.sqlite';
+    if (file_exists($sourceDb)) {
+        if (!file_exists('/tmp/database.sqlite') || filesize('/tmp/database.sqlite') < 1000) {
             @copy($sourceDb, '/tmp/database.sqlite');
-        } else {
+        }
+    } else {
+        if (!file_exists('/tmp/database.sqlite')) {
             @touch('/tmp/database.sqlite');
         }
     }
