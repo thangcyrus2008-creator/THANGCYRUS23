@@ -52,6 +52,8 @@
     "SESSION_DRIVER": "cookie",
     "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
     "BANK_EMAIL_SECRET": "ThangCyrusBankSecure2026",
-    "BANK_PREFIX": "naptien"
+    "BANK_PREFIX": "naptien",
+    "DB_CONNECTION": "sqlite",
+    "DB_DATABASE": "/tmp/database.sqlite"
   }
 }
