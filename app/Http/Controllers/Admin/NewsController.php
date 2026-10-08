@@ -31,7 +31,7 @@ class NewsController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255|unique:news,title',
-            'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'thumbnail' => 'required|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
             'description' => 'required|string',
             'content' => 'required|string',
             'active' => 'boolean'
@@ -70,7 +70,7 @@ class NewsController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255|unique:news,title,' . $news->id,
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
             'description' => 'required|string',
             'content' => 'required|string',
             'active' => 'boolean'
@@ -84,7 +84,7 @@ class NewsController extends Controller
             $data['active'] = $request->boolean('active');
 
             if ($request->hasFile('thumbnail')) {
-                if ($news->thumbnail) {
+                if ($news->thumbnail && !str_starts_with($news->thumbnail, 'data:')) {
                     UploadHelper::deleteByUrl($news->thumbnail);
                 }
                 $data['thumbnail'] = UploadHelper::upload($request->file('thumbnail'), self::UPLOAD_DIR);

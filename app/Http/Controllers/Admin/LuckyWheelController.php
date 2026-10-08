@@ -59,8 +59,8 @@ class LuckyWheelController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price_per_spin' => 'required|numeric|min:1000',
-            'thumbnail' => 'nullable|image',
-            'wheel_image' => 'nullable|image',
+            'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'wheel_image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
             'description' => 'nullable|string',
             'rules' => 'required|string',
             'active' => 'required|boolean',
@@ -152,8 +152,8 @@ class LuckyWheelController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price_per_spin' => 'required|numeric|min:1000',
-            'thumbnail' => 'nullable|image',
-            'wheel_image' => 'nullable|image',
+            'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'wheel_image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
             'description' => 'nullable|string',
             'rules' => 'required|string',
             'active' => 'required|boolean',
@@ -186,8 +186,7 @@ class LuckyWheelController extends Controller
 
             // Xử lý upload ảnh đại diện nếu có
             if ($request->hasFile('thumbnail')) {
-                // Delete old thumbnail if exists
-                if ($luckyWheel->thumbnail) {
+                if ($luckyWheel->thumbnail && !str_starts_with($luckyWheel->thumbnail, 'data:')) {
                     UploadHelper::deleteByUrl($luckyWheel->thumbnail);
                 }
                 $luckyWheel->thumbnail = UploadHelper::upload($request->file('thumbnail'), self::UPLOAD_DIR . '/thumbnails');
@@ -195,8 +194,7 @@ class LuckyWheelController extends Controller
 
             // Xử lý upload ảnh vòng quay nếu có
             if ($request->hasFile('wheel_image')) {
-                // Delete old wheel image if exists
-                if ($luckyWheel->wheel_image) {
+                if ($luckyWheel->wheel_image && !str_starts_with($luckyWheel->wheel_image, 'data:')) {
                     UploadHelper::deleteByUrl($luckyWheel->wheel_image);
                 }
                 $luckyWheel->wheel_image = UploadHelper::upload($request->file('wheel_image'), self::UPLOAD_DIR . '/wheel-images');

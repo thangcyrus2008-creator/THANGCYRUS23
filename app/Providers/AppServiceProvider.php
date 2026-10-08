@@ -14,7 +14,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->extend('url', function ($url, $app) {
+            return new \App\Services\CustomUrlGenerator(
+                $app['router']->getRoutes(),
+                $app['request'],
+                $app['config']['app.asset_url']
+            );
+        });
     }
 
     /**

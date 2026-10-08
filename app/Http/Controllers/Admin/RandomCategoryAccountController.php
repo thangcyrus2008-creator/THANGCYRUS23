@@ -58,7 +58,7 @@ class RandomCategoryAccountController extends Controller
                 'random_category_id' => 'required|exists:random_categories,id',
                 'accounts' => 'required|string',
                 'price' => 'required|numeric|min:0',
-                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
                 'note' => 'nullable|string',
                 'note_buyer' => 'nullable|string',
             ]);
@@ -74,13 +74,6 @@ class RandomCategoryAccountController extends Controller
             if ($request->hasFile('thumbnail')) {
                 try {
                     $file = $request->file('thumbnail');
-
-                    // Kiểm tra kích thước file
-                    if ($file->getSize() > 2048 * 1024) { // 2MB
-                        throw new \Exception('Kích thước ảnh không được vượt quá 2MB');
-                    }
-
-                    // Upload file
                     $thumbnailPath = UploadHelper::upload($file, self::UPLOAD_DIR);
                 } catch (\Exception $e) {
                     DB::rollBack();
@@ -156,7 +149,7 @@ class RandomCategoryAccountController extends Controller
                 'password' => 'nullable|string|max:100',
                 'price' => 'required|numeric|min:0',
                 'note' => 'nullable|string',
-                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
             ]);
 
             DB::beginTransaction();

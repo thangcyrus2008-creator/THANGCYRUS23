@@ -59,18 +59,27 @@ class GameAccountController extends Controller
                 'price' => 'required|numeric|min:0',
                 'note' => 'nullable|string',
                 'details' => 'nullable|array',
-                'thumb' => 'required|image|mimes:jpeg,png,jpg,gif',
-                'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'thumb' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+                'thumb_url' => 'nullable|string',
+                'images.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
                 'status' => 'required|in:available,sold'
             ]);
 
+            if (!$request->hasFile('thumb') && empty($request->input('thumb_url'))) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['thumb' => 'Vui lòng tải lên ảnh đại diện hoặc nhập link ảnh!']);
+            }
+
             DB::beginTransaction();
 
-            $data = $request->except(['thumb', 'images']);
+            $data = $request->except(['thumb', 'thumb_url', 'images']);
 
             // Store thumbnail
             if ($request->hasFile('thumb')) {
                 $data['thumb'] = UploadHelper::upload($request->file('thumb'), self::UPLOAD_DIR . '/thumbnails');
+            } elseif (!empty($request->input('thumb_url'))) {
+                $data['thumb'] = trim($request->input('thumb_url'));
             }
 
             // Store multiple images
@@ -89,6 +98,10 @@ class GameAccountController extends Controller
 
             return redirect()->route('admin.accounts.index')
                 ->with('success', 'Tài khoản game đã được tạo thành công.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating game account: ' . $e->getMessage());
@@ -115,28 +128,33 @@ class GameAccountController extends Controller
                 'price' => 'required|numeric|min:0',
                 'note' => 'nullable|string',
                 'details' => 'nullable|array',
-                'thumb' => 'nullable|image|mimes:jpeg,png,jpg,gif',
-                'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif'
+                'thumb' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+                'thumb_url' => 'nullable|string',
+                'images.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240'
             ]);
 
             DB::beginTransaction();
 
-            $data = $request->except(['thumb', 'images']);
+            $data = $request->except(['thumb', 'thumb_url', 'images']);
 
             if ($request->hasFile('thumb')) {
-                // Delete old thumbnail
-                if ($account->thumb) {
+                if ($account->thumb && !str_starts_with($account->thumb, 'data:')) {
                     UploadHelper::deleteByUrl($account->thumb);
                 }
                 $data['thumb'] = UploadHelper::upload($request->file('thumb'), self::UPLOAD_DIR . '/thumbnails');
+            } elseif (!empty($request->input('thumb_url'))) {
+                $data['thumb'] = trim($request->input('thumb_url'));
             }
 
             if ($request->hasFile('images')) {
-                // Delete old images
                 if ($account->images) {
                     $oldImages = json_decode($account->images, true);
-                    foreach ($oldImages as $image) {
-                        UploadHelper::deleteByUrl($image);
+                    if (is_array($oldImages)) {
+                        foreach ($oldImages as $image) {
+                            if (!str_starts_with($image, 'data:')) {
+                                UploadHelper::deleteByUrl($image);
+                            }
+                        }
                     }
                 }
 

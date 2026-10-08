@@ -40,14 +40,11 @@ class BankAccountController extends Controller
             'note' => 'nullable|string',
             'prefix' => 'required|string|max:50',
             'access_token' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
 
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('uploads/banks'), $imageName);
-            $validated['image'] = 'uploads/banks/' . $imageName;
+            $validated['image'] = \App\Helpers\UploadHelper::upload($request->file('image'), 'banks');
         }
 
         // Xử lý các trường boolean
@@ -89,19 +86,14 @@ class BankAccountController extends Controller
             'note' => 'nullable|string',
             'prefix' => 'required|string|max:50',
             'access_token' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
 
         if ($request->hasFile('image')) {
-            // Xóa ảnh cũ nếu có
-            if ($bankAccount->image && file_exists(public_path($bankAccount->image))) {
-                unlink(public_path($bankAccount->image));
+            if ($bankAccount->image && !str_starts_with($bankAccount->image, 'data:')) {
+                \App\Helpers\UploadHelper::deleteByUrl($bankAccount->image);
             }
-
-            $image = $request->file('image');
-            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('uploads/banks'), $imageName);
-            $validated['image'] = 'uploads/banks/' . $imageName;
+            $validated['image'] = \App\Helpers\UploadHelper::upload($request->file('image'), 'banks');
         }
 
         // Xử lý các trường boolean

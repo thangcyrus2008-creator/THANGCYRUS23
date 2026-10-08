@@ -102,6 +102,9 @@ class UploadHelper
     public static function deleteByUrl(string $url): bool
     {
         try {
+            if (str_starts_with($url, 'data:') || str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+                return true;
+            }
             $path = str_replace('/storage', 'public', $url);
             return Storage::delete($path);
         } catch (\Exception $e) {

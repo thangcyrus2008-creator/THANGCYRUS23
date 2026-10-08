@@ -54,8 +54,10 @@ class RandomCategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|unique:random_categories,name',
-            'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif',
-            'tag_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'thumbnail_url' => 'nullable|string',
+            'tag_image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'tag_image_url' => 'nullable|string',
             'description' => 'nullable|string',
             'active' => 'boolean',
             'platform' => 'nullable|string|max:255',
@@ -66,19 +68,29 @@ class RandomCategoryController extends Controller
             'flash_sale_end_time' => 'nullable|date',
         ]);
 
+        if (!$request->hasFile('thumbnail') && empty($request->input('thumbnail_url'))) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['thumbnail' => 'Vui lòng chọn tải lên ảnh đại diện hoặc nhập link ảnh!']);
+        }
+
         try {
             DB::beginTransaction();
 
-            $data = $request->all();
+            $data = $request->except(['thumbnail_url', 'tag_image_url']);
             $data['slug'] = Str::slug($request->name);
             $data['is_flash_sale'] = $request->has('is_flash_sale');
 
             if ($request->hasFile('thumbnail')) {
                 $data['thumbnail'] = UploadHelper::upload($request->file('thumbnail'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('thumbnail_url'))) {
+                $data['thumbnail'] = trim($request->input('thumbnail_url'));
             }
 
             if ($request->hasFile('tag_image')) {
                 $data['tag_image'] = UploadHelper::upload($request->file('tag_image'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('tag_image_url'))) {
+                $data['tag_image'] = trim($request->input('tag_image_url'));
             }
 
             RandomCategory::create($data);
@@ -113,8 +125,10 @@ class RandomCategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|unique:random_categories,name,' . $category->id,
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif',
-            'tag_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'thumbnail_url' => 'nullable|string',
+            'tag_image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'tag_image_url' => 'nullable|string',
             'description' => 'nullable|string',
             'active' => 'boolean',
             'platform' => 'nullable|string|max:255',
@@ -128,7 +142,7 @@ class RandomCategoryController extends Controller
         try {
             DB::beginTransaction();
 
-            $data = $request->all();
+            $data = $request->except(['thumbnail_url', 'tag_image_url']);
             if (!isset($data['active'])) {
                 $data['active'] = false;
             }
@@ -136,20 +150,21 @@ class RandomCategoryController extends Controller
             $data['is_flash_sale'] = $request->has('is_flash_sale');
 
             if ($request->hasFile('thumbnail')) {
-                // Delete old thumbnail if exists
-                if ($category->thumbnail) {
+                if ($category->thumbnail && !str_starts_with($category->thumbnail, 'data:')) {
                     UploadHelper::deleteByUrl($category->thumbnail);
                 }
-
                 $data['thumbnail'] = UploadHelper::upload($request->file('thumbnail'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('thumbnail_url'))) {
+                $data['thumbnail'] = trim($request->input('thumbnail_url'));
             }
 
             if ($request->hasFile('tag_image')) {
-                if ($category->tag_image) {
+                if ($category->tag_image && !str_starts_with($category->tag_image, 'data:')) {
                     UploadHelper::deleteByUrl($category->tag_image);
                 }
-
                 $data['tag_image'] = UploadHelper::upload($request->file('tag_image'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('tag_image_url'))) {
+                $data['tag_image'] = trim($request->input('tag_image_url'));
             }
 
             $category->update($data);

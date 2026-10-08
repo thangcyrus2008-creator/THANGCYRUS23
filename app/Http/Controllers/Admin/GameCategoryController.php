@@ -45,8 +45,10 @@ class GameCategoryController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|unique:game_categories,name',
-                'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif',
-                'tag_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+                'thumbnail_url' => 'nullable|string',
+                'tag_image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+                'tag_image_url' => 'nullable|string',
                 'description' => 'required|string',
                 'active' => 'boolean',
                 'platform' => 'nullable|string|max:255',
@@ -57,19 +59,30 @@ class GameCategoryController extends Controller
                 'flash_sale_end_time' => 'nullable|date',
             ]);
 
+            // Ensure thumbnail exists either as file or URL
+            if (!$request->hasFile('thumbnail') && empty($request->input('thumbnail_url'))) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['thumbnail' => 'Vui lòng chọn tải lên ảnh đại diện hoặc nhập link ảnh!']);
+            }
+
             DB::beginTransaction();
 
-            $data = $request->all();
+            $data = $request->except(['thumbnail_url', 'tag_image_url']);
             $data['slug'] = Str::slug($request->name);
             $data['active'] = $request->boolean('active');
             $data['is_flash_sale'] = $request->has('is_flash_sale');
 
             if ($request->hasFile('thumbnail')) {
                 $data['thumbnail'] = UploadHelper::upload($request->file('thumbnail'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('thumbnail_url'))) {
+                $data['thumbnail'] = trim($request->input('thumbnail_url'));
             }
 
             if ($request->hasFile('tag_image')) {
                 $data['tag_image'] = UploadHelper::upload($request->file('tag_image'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('tag_image_url'))) {
+                $data['tag_image'] = trim($request->input('tag_image_url'));
             }
 
             GameCategory::create($data);
@@ -104,8 +117,10 @@ class GameCategoryController extends Controller
             // Validate request data
             $request->validate([
                 'name' => 'required|string|unique:game_categories,name,' . $category->id,
-                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif',
-                'tag_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                'thumbnail' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+                'thumbnail_url' => 'nullable|string',
+                'tag_image' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+                'tag_image_url' => 'nullable|string',
                 'description' => 'nullable|string',
                 'active' => 'boolean',
                 'platform' => 'nullable|string|max:255',
@@ -118,41 +133,35 @@ class GameCategoryController extends Controller
 
             DB::beginTransaction();
 
-            $data = $request->all();
+            $data = $request->except(['thumbnail_url', 'tag_image_url']);
             $data['slug'] = Str::slug($request->name);
             $data['active'] = $request->boolean('active');
             $data['is_flash_sale'] = $request->has('is_flash_sale');
 
             if ($request->hasFile('thumbnail')) {
-                // Delete old thumbnail if exists
-                if ($category->thumbnail) {
+                if ($category->thumbnail && !str_starts_with($category->thumbnail, 'data:')) {
                     UploadHelper::deleteByUrl($category->thumbnail);
                 }
-
-                // Upload new thumbnail
                 $data['thumbnail'] = UploadHelper::upload($request->file('thumbnail'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('thumbnail_url'))) {
+                $data['thumbnail'] = trim($request->input('thumbnail_url'));
             }
 
             if ($request->hasFile('tag_image')) {
-                // Delete old tag_image if exists
-                if ($category->tag_image) {
+                if ($category->tag_image && !str_starts_with($category->tag_image, 'data:')) {
                     UploadHelper::deleteByUrl($category->tag_image);
                 }
-
-                // Upload new tag_image
                 $data['tag_image'] = UploadHelper::upload($request->file('tag_image'), self::UPLOAD_DIR);
+            } elseif (!empty($request->input('tag_image_url'))) {
+                $data['tag_image'] = trim($request->input('tag_image_url'));
             }
 
-            // Update category
-            if (!$category->update($data)) {
-                throw new \Exception('Không thể cập nhật danh mục');
-            }
+            $category->update($data);
 
             DB::commit();
 
             return redirect()->route('admin.categories.index')
-                ->with('success', 'Cập nhật danh mục thành công!');
-
+                ->with('success', 'Cập nhật danh mục game thành công!');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
                 ->withErrors($e->errors())

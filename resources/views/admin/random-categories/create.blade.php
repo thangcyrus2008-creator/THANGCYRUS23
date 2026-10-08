@@ -117,13 +117,20 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label">Ảnh đại diện <span class="text-danger">*</span></label>
-                                    <div class="image-upload" style="position: relative; border: 1px dashed #4680ff; background: rgba(70, 128, 255, 0.05); padding: 20px; border-radius: 8px; text-align: center;">
-                                        <input type="file" name="thumbnail" class="form-control @error('thumbnail') is-invalid @enderror" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                                        <div class="image-uploads mt-2">
+                                    <div class="image-upload" style="position: relative; border: 2px dashed #4680ff; background: rgba(70, 128, 255, 0.05); padding: 20px; border-radius: 8px; text-align: center; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                        <input type="file" name="thumbnail" id="input_thumbnail" class="form-control @error('thumbnail') is-invalid @enderror" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 5;">
+                                        <div id="preview_thumbnail_box" style="display: none; pointer-events: none;">
+                                            <img id="preview_thumbnail_img" src="" style="max-height: 100px; max-width: 100%; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-bottom: 8px;">
+                                            <div id="preview_thumbnail_name" class="fw-semibold text-success small"></div>
+                                        </div>
+                                        <div id="upload_thumbnail_placeholder" class="image-uploads" style="pointer-events: none;">
                                             <i class="ti ti-photo-plus text-primary" style="font-size: 40px;"></i>
                                             <h5 class="mt-2 mb-0 fw-semibold">Kéo thả hoặc click để tải ảnh lên</h5>
-                                            <p class="text-muted small">Hỗ trợ JPG, PNG, GIF</p>
+                                            <p class="text-muted small mb-0">Hỗ trợ JPG, PNG, WEBP, GIF (Tối đa 10MB)</p>
                                         </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <input type="text" name="thumbnail_url" id="input_thumbnail_url" class="form-control form-control-sm" placeholder="Hoặc dán link ảnh trực tiếp: https://..." value="{{ old('thumbnail_url') }}">
                                     </div>
                                     @error('thumbnail')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -133,13 +140,20 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label">Ảnh Tag (Mua Nhiều, Hot...)</label>
-                                    <div class="image-upload" style="position: relative; border: 1px dashed #ffb822; background: rgba(255, 184, 34, 0.05); padding: 20px; border-radius: 8px; text-align: center;">
-                                        <input type="file" name="tag_image" class="form-control @error('tag_image') is-invalid @enderror" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-                                        <div class="image-uploads mt-2">
+                                    <div class="image-upload" style="position: relative; border: 2px dashed #ffb822; background: rgba(255, 184, 34, 0.05); padding: 20px; border-radius: 8px; text-align: center; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                        <input type="file" name="tag_image" id="input_tag_image" class="form-control @error('tag_image') is-invalid @enderror" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 5;">
+                                        <div id="preview_tag_image_box" style="display: none; pointer-events: none;">
+                                            <img id="preview_tag_image_img" src="" style="max-height: 80px; max-width: 100%; border-radius: 6px; margin-bottom: 8px;">
+                                            <div id="preview_tag_image_name" class="fw-semibold text-warning small"></div>
+                                        </div>
+                                        <div id="upload_tag_image_placeholder" class="image-uploads" style="pointer-events: none;">
                                             <i class="ti ti-star text-warning" style="font-size: 40px;"></i>
                                             <h5 class="mt-2 mb-0 fw-semibold text-warning">Kéo thả ảnh Tag vào đây</h5>
-                                            <p class="text-muted small">Hỗ trợ ảnh PNG trong suốt</p>
+                                            <p class="text-muted small mb-0">Hỗ trợ PNG, WEBP trong suốt (Tối đa 10MB)</p>
                                         </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <input type="text" name="tag_image_url" id="input_tag_image_url" class="form-control form-control-sm" placeholder="Hoặc dán link ảnh Tag trực tiếp: https://..." value="{{ old('tag_image_url') }}">
                                     </div>
                                     @error('tag_image')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -166,4 +180,48 @@
             </div>
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function setupImagePreview(fileInputId, previewBoxId, previewImgId, previewNameId, placeholderId, urlInputId) {
+            const fileInput = document.getElementById(fileInputId);
+            const previewBox = document.getElementById(previewBoxId);
+            const previewImg = document.getElementById(previewImgId);
+            const previewName = document.getElementById(previewNameId);
+            const placeholder = document.getElementById(placeholderId);
+            const urlInput = document.getElementById(urlInputId);
+
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            previewImg.src = evt.target.result;
+                            previewName.textContent = '✓ ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                            previewBox.style.display = 'block';
+                            placeholder.style.display = 'none';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            if (urlInput) {
+                urlInput.addEventListener('input', function() {
+                    const val = urlInput.value.trim();
+                    if (val && (val.startsWith('http') || val.startsWith('data:'))) {
+                        previewImg.src = val;
+                        previewName.textContent = '✓ Đang dùng link ảnh trực tiếp';
+                        previewBox.style.display = 'block';
+                        placeholder.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        setupImagePreview('input_thumbnail', 'preview_thumbnail_box', 'preview_thumbnail_img', 'preview_thumbnail_name', 'upload_thumbnail_placeholder', 'input_thumbnail_url');
+        setupImagePreview('input_tag_image', 'preview_tag_image_box', 'preview_tag_image_img', 'preview_tag_image_name', 'upload_tag_image_placeholder', 'input_tag_image_url');
+    });
+    </script>
 @endsection
