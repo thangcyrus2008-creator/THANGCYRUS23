@@ -17,6 +17,8 @@ class VerifyCsrfToken extends Middleware
         '*callback*',
         '*discount-codes*',
         'api/*',
+        'logout',
+        '*/logout',
     ];
 
     /**
@@ -24,7 +26,14 @@ class VerifyCsrfToken extends Middleware
      */
     public function handle($request, \Closure $next)
     {
-        if ($request->is('api/*') || $request->is('*webhook*') || $request->is('*bank-email*') || $request->is('*callback*')) {
+        if (
+            $request->is('api/*') || 
+            $request->is('*webhook*') || 
+            $request->is('*bank-email*') || 
+            $request->is('*callback*') ||
+            $request->is('logout') ||
+            $request->is('*/logout')
+        ) {
             return $next($request);
         }
 

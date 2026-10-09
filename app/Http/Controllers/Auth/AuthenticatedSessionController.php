@@ -36,11 +36,15 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-
-        $request->session()->regenerateToken();
+        try {
+            if (Auth::guard('web')->check()) {
+                Auth::guard('web')->logout();
+            }
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        } catch (\Throwable $e) {
+            // Đảm bảo không bao giờ bị văng lỗi khi đăng xuất
+        }
 
         return redirect('/');
     }
