@@ -368,11 +368,6 @@
                     <a href="{{ route('profile.transaction-history') }}" class="dropdown-item">
                         <span class="iconify" data-icon="ant-design:history-outlined"></span> Lịch Sử Mua
                     </a>
-                    @if (Auth::check() && Auth()->user()->role == 'admin')
-                    <a href="{{ Route::has('admin.index') ? route('admin.index') : 'http://127.0.0.1:8000/admin' }}" class="dropdown-item" target="_blank">
-                        <span class="iconify" data-icon="ant-design:dashboard-outlined"></span> Admin
-                    </a>
-                    @endif
                     <div class="dropdown-divider"></div>
                     <form method="POST" action="{{ route('logout') }}" style="display: inline;width:100%;">
                         @csrf
