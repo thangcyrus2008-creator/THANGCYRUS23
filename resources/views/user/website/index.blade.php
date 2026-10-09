@@ -435,7 +435,7 @@
             <div>
                 <strong>Thông báo từ hệ thống API:</strong> {{ $apiError }}.
                 @if(Auth::check() && Auth::user()->role === 'admin')
-                    <a href="{{ route('admin.websites.settings') }}" style="color:#b91c1c; font-weight:700; text-decoration:underline; margin-left:6px;">Kiểm tra cấu hình API</a>
+                    <a href="{{ Route::has('admin.websites.settings') ? route('admin.websites.settings') : 'http://127.0.0.1:8000/admin/websites/settings' }}" style="color:#b91c1c; font-weight:700; text-decoration:underline; margin-left:6px;" target="_blank">Kiểm tra cấu hình API</a>
                 @endif
             </div>
         </div>

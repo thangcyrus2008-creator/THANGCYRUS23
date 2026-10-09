@@ -369,7 +369,7 @@
                         <span class="iconify" data-icon="ant-design:history-outlined"></span> Lịch Sử Mua
                     </a>
                     @if (Auth::check() && Auth()->user()->role == 'admin')
-                    <a href="{{ route('admin.index') }}" class="dropdown-item">
+                    <a href="{{ Route::has('admin.index') ? route('admin.index') : 'http://127.0.0.1:8000/admin' }}" class="dropdown-item" target="_blank">
                         <span class="iconify" data-icon="ant-design:dashboard-outlined"></span> Admin
                     </a>
                     @endif

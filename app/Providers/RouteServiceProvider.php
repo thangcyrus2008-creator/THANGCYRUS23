@@ -39,6 +39,20 @@ class RouteServiceProvider extends ServiceProvider
             if (env('ENABLE_ADMIN_PANEL', false) && file_exists(base_path('routes/admin.php'))) {
                 Route::middleware('web')
                     ->group(base_path('routes/admin.php'));
+            } else {
+                Route::middleware('web')->group(function () {
+                    Route::get('/admin', function () {
+                        return redirect('http://127.0.0.1:8000/admin');
+                    })->name('admin.index');
+
+                    Route::get('/admin/websites/settings', function () {
+                        return redirect('http://127.0.0.1:8000/admin/websites/settings');
+                    })->name('admin.websites.settings');
+
+                    Route::any('/admin/{any?}', function () {
+                        return redirect('http://127.0.0.1:8000/admin');
+                    })->where('any', '.*');
+                });
             }
 
             Route::middleware('web')
