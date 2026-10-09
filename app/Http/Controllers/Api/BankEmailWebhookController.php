@@ -18,9 +18,13 @@ class BankEmailWebhookController extends Controller
      */
     public function handleEmailWebhook(Request $request)
     {
-        // 1. Kiểm tra secret key bảo mật
+        // 1. Kiểm tra secret key bảo mật (hỗ trợ X-Webhook-Secret, Authorization Apikey, body hoặc query)
         $configuredSecret = env('BANK_EMAIL_SECRET', 'ThangCyrusBankSecure2026');
-        $receivedSecret = $request->header('X-Webhook-Secret') ?: $request->input('secret');
+        $authHeader = $request->header('Authorization');
+        $receivedSecret = $request->header('X-Webhook-Secret') ?: $request->input('secret') ?: $request->query('secret');
+        if (!$receivedSecret && $authHeader && preg_match('/Apikey\s+(.*)/i', $authHeader, $matches)) {
+            $receivedSecret = trim($matches[1]);
+        }
 
         if ($receivedSecret !== $configuredSecret) {
             return response()->json([
@@ -29,18 +33,24 @@ class BankEmailWebhookController extends Controller
             ], 401);
         }
 
-        // 2. Validate dữ liệu đầu vào
-        $request->validate([
-            'bank' => 'nullable|string',
-            'amount' => 'required|numeric|min:1000',
-            'content' => 'required|string',
-            'transaction_id' => 'required|string',
-        ]);
+        // Bỏ qua nếu là giao dịch tiền ra (SePay transferType === 'out')
+        if ($request->input('transferType') === 'out') {
+            return response()->json(['status' => 'ignored', 'message' => 'Giao dịch chuyển tiền đi (out)'], 200);
+        }
 
-        $bank = $request->input('bank', 'BANK');
-        $amount = (float) $request->input('amount');
-        $content = trim($request->input('content'));
-        $transactionId = trim($request->input('transaction_id'));
+        // 2. Chuẩn hóa dữ liệu đầu vào (hỗ trợ cả SePay và Google Apps Script)
+        $bank = $request->input('bank') ?: $request->input('gateway') ?: 'MBBank';
+        $amount = (float) ($request->input('amount') ?: $request->input('transferAmount') ?: 0);
+        $content = trim($request->input('content') ?: $request->input('description') ?: '');
+        $transactionId = trim((string) ($request->input('transaction_id') ?: $request->input('referenceCode') ?: $request->input('id') ?: ''));
+
+        if ($amount < 1000 || empty($content) || empty($transactionId)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Dữ liệu giao dịch không hợp lệ (thiếu số tiền, nội dung hoặc mã GD).'
+            ], 400);
+        }
+
         $prefix = env('BANK_PREFIX', 'naptien');
 
         // 3. Trích xuất User ID từ nội dung chuyển khoản
