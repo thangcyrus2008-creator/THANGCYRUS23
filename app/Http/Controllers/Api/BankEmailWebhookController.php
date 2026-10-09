@@ -59,6 +59,10 @@ class BankEmailWebhookController extends Controller
         $content = trim((string) ($request->input('content') ?: $request->input('description') ?: ($raw['content'] ?? ($raw['description'] ?? ($payosData['description'] ?? '')))));
         $transactionId = trim((string) ($request->input('transaction_id') ?: $request->input('referenceCode') ?: $request->input('id') ?: ($raw['transaction_id'] ?? ($raw['referenceCode'] ?? ($payosData['reference'] ?? ($payosData['orderCode'] ?? ''))))));
 
+        if (empty($transactionId) && !empty($payosData)) {
+            $transactionId = 'PAYOS_' . time() . '_' . rand(1000, 9999);
+        }
+
         if ($amount < 1000 || empty($content) || empty($transactionId)) {
             return response()->json([
                 'status' => 'error',
