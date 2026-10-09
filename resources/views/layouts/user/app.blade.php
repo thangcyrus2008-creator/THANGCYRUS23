@@ -3,6 +3,25 @@
 @include('layouts.user.head')
 <body style="min-height:100vh;display:flex;flex-direction:column;margin:0;">
     <div id="fui-toast"></div>
+    @if(in_array(request()->getHost(), ['127.0.0.1', 'localhost']) && Auth::check() && Auth::user()->role === 'admin')
+        <div style="background: linear-gradient(90deg, #111827, #1f2937); color: #f59e0b; padding: 8px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; z-index: 99999; border-bottom: 1px solid #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>👑 <strong>CỔNG NỘI BỘ (LOCAL ADMIN):</strong> Bạn đang đăng nhập quyền Quản trị ({{ Auth::user()->username }})</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{{ route('admin.index') }}" style="background: #f59e0b; color: #000; padding: 5px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    VÀO BẢNG ĐIỀU KHIỂN ADMIN &rarr;
+                </a>
+                <a href="{{ route('admin.logout') }}" style="background: #dc2626; color: #fff; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">
+                    Đăng xuất Admin
+                </a>
+            </div>
+        </div>
+        <style>
+            .navbar { top: 40px !important; }
+            main { padding-top: 104px !important; }
+        </style>
+    @endif
     <!-- Navbar -->
     @include('layouts.user.header')
     

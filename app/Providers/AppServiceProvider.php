@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Force HTTPS in production or if needed
-        if (config('app.env') === 'production' || request()->secure()) {
+        if (config('app.env') === 'production' || (!$this->app->runningInConsole() && request()->secure())) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 

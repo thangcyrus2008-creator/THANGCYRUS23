@@ -25,8 +25,17 @@ use Illuminate\Support\Facades\Route;
 |
 */
 require __DIR__ . '/auth.php';
+Route::get('/', function (\Illuminate\Http\Request $request) {
+    if (in_array($request->getHost(), ['127.0.0.1', 'localhost']) && filter_var(env('ENABLE_ADMIN_PANEL', false), FILTER_VALIDATE_BOOLEAN)) {
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->role === 'admin') {
+            return redirect()->route('admin.index');
+        }
+        return redirect()->route('admin.login');
+    }
+    return app(HomeController::class)->index();
+})->name('home');
 
-Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/shop-preview', [HomeController::class, 'index'])->name('shop.preview');
 Route::get('/nhan-xet', [HomeController::class, 'reviews'])->name('reviews');
 Route::get('/cau-hoi-thuong-gap', [HomeController::class, 'faq'])->name('faq');
 Route::get('/dieu-khoan-su-dung', [HomeController::class, 'terms'])->name('terms');
