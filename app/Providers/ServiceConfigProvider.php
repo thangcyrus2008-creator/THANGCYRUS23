@@ -1,10 +1,7 @@
 <?php
 namespace App\Providers;
 
-use App\Models\Config;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
-use App\Models\ServiceSetting;
 
 class ServiceConfigProvider extends ServiceProvider
 {
@@ -15,37 +12,42 @@ class ServiceConfigProvider extends ServiceProvider
 
     protected function loadServiceSettings()
     {
-        // Load service settings from the configuration
-        if (!empty(config('service.settings'))) {
-            // Sử dụng cache để tránh truy vấn DB nhiều lần
-            $settings = Cache::remember('service_settings', 3600, function () {
-                return Config::all()->groupBy('provider')->map(function ($items) {
-                    return $items->pluck('value', 'key')->all();
-                })->all();
-            });
+        try {
+            // Google OAuth config
+            $googleClientId = config_get('login_social.google.client_id') ?: config('services.google.client_id');
+            $googleClientSecret = config_get('login_social.google.client_secret') ?: config('services.google.client_secret');
+            $googleRedirect = config_get('login_social.google.redirect') ?: config('services.google.redirect');
 
-            // Cập nhật cấu hình cho Google
-            if (isset($settings['login_social.google.active'])) {
+            if (empty($googleRedirect) || (app()->environment('production') && str_contains($googleRedirect, 'localhost'))) {
+                $googleRedirect = url('/auth/google/callback');
+            }
+
+            if (!empty($googleClientId)) {
                 config([
-                    'services.google' => [
-                        'client_id' => $settings['login_social.google.client_id'] ?? '',
-                        'client_secret' => $settings['login_social.google.client_secret'] ?? '',
-                        'redirect' => $settings['login_social.google.redirect'] ?? '',
-                    ]
+                    'services.google.client_id' => $googleClientId,
+                    'services.google.client_secret' => $googleClientSecret,
+                    'services.google.redirect' => $googleRedirect,
                 ]);
             }
 
-            // Cập nhật cấu hình cho Facebook
-            if (isset($settings['login_social.facebook.active'])) {
+            // Facebook OAuth config
+            $fbClientId = config_get('login_social.facebook.client_id') ?: config('services.facebook.client_id');
+            $fbClientSecret = config_get('login_social.facebook.client_secret') ?: config('services.facebook.client_secret');
+            $fbRedirect = config_get('login_social.facebook.redirect') ?: config('services.facebook.redirect');
+
+            if (empty($fbRedirect) || (app()->environment('production') && str_contains($fbRedirect, 'localhost'))) {
+                $fbRedirect = url('/auth/facebook/callback');
+            }
+
+            if (!empty($fbClientId)) {
                 config([
-                    'services.facebook' => [
-                        'client_id' => $settings['login_social.facebook.client_id'] ?? '',
-                        'client_secret' => $settings['login_social.facebook.client_secret'] ?? '',
-                        'redirect' => $settings['login_social.facebook.redirect'] ?? '',
-                    ]
+                    'services.facebook.client_id' => $fbClientId,
+                    'services.facebook.client_secret' => $fbClientSecret,
+                    'services.facebook.redirect' => $fbRedirect,
                 ]);
             }
+        } catch (\Throwable $e) {
+            // Silently ignore if DB is not ready
         }
-
     }
 }

@@ -30,25 +30,15 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
-    // 'google' => [
-    //     'client_id' => config_get('login_social.google.client_id', ''),
-    //     'client_secret' => config_get('login_social.google.client_secret', ''),
-    //     'redirect' => config_get('login_social.google.redirect', ''),
-    // ],
-    // 'facebook' => [
-    //     'client_id' => config_get('login_social.facebook.client_id', ''),
-    //     'client_secret' => config_get('login_social.facebook.client_secret', ''),
-    //     'redirect' => config_get('login_social.facebook.redirect', ''),
-    // ],
     'google' => [
-        'client_id' => '',
-        'client_secret' => '',
-        'redirect' => '',
+        'client_id' => env('GOOGLE_CLIENT_ID', ''),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET', ''),
+        'redirect' => env('GOOGLE_REDIRECT_URI', 'https://shop-thangcyrus.vercel.app/auth/google/callback'),
     ],
     'facebook' => [
-        'client_id' => '713944317580357',
-        'client_secret' => '481beed7538a8b7318c45e94401f4e3c',
-        'redirect' => 'http://localhost:8000/auth/facebook/callback',
+        'client_id' => env('FACEBOOK_CLIENT_ID', ''),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET', ''),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', 'https://shop-thangcyrus.vercel.app/auth/facebook/callback'),
     ],
 
 ];
