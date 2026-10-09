@@ -36,8 +36,10 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
 
-            Route::middleware('web')
-                ->group(base_path('routes/admin.php'));
+            if (env('ENABLE_ADMIN_PANEL', false) && file_exists(base_path('routes/admin.php'))) {
+                Route::middleware('web')
+                    ->group(base_path('routes/admin.php'));
+            }
 
             Route::middleware('web')
                 ->group(base_path('routes/member.php'));
