@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Route;
 | Không cho phép truy cập từ môi trường công cộng.
 */
 
+Route::get('/admin', function () {
+    return redirect('http://127.0.0.1:8000/admin');
+})->name('admin.index');
+
+Route::get('/admin/websites/settings', function () {
+    return redirect('http://127.0.0.1:8000/admin/websites/settings');
+})->name('admin.websites.settings');
+
 Route::any('/admin/{any?}', function () {
     abort(404);
 })->where('any', '.*');

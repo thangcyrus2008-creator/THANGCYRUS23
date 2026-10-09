@@ -36,7 +36,8 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
 
-            if (env('ENABLE_ADMIN_PANEL', false) && file_exists(base_path('routes/admin.php'))) {
+            $enableAdmin = filter_var(env('ENABLE_ADMIN_PANEL', false), FILTER_VALIDATE_BOOLEAN);
+            if ($enableAdmin && file_exists(base_path('routes/admin.php'))) {
                 Route::middleware('web')
                     ->group(base_path('routes/admin.php'));
             } else {
