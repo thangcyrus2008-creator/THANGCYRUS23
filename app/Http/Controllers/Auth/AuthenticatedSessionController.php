@@ -28,6 +28,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+        if ($user && $user->role === 'admin') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'username' => 'Tài khoản Quản trị viên chỉ được phép đăng nhập trên máy chủ nội bộ (Localhost)! Không thể đăng nhập trên website công khai.'
+            ]);
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 
