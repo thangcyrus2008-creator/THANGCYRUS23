@@ -344,7 +344,11 @@
                 const stepQr = document.getElementById('step-qr');
                 
                 let selectedBank = null;
-                const userId = "{{ Auth::user()->id ?? '' }}";
+                @php
+                    $dpUser = Auth::user();
+                    $depositIdentifier = !empty($dpUser->email) ? $dpUser->email : (!empty($dpUser->username) ? $dpUser->username : ($dpUser->id ?? ''));
+                @endphp
+                const userIdentifier = "{{ $depositIdentifier }}";
                 
                 function checkSubmit() {
                     const amount = parseInt(inputAmount.value);
@@ -386,7 +390,7 @@
                 btnSubmit.addEventListener('click', function() {
                     const amount = inputAmount.value;
                     const prefixStr = (selectedBank.prefix ? selectedBank.prefix.trim() : 'naptien');
-                    const content = prefixStr + ' ' + userId;
+                    const content = prefixStr + ' ' + userIdentifier;
                     
                     document.getElementById('qr-bank').textContent = selectedBank.bank;
                     document.getElementById('qr-name').textContent = selectedBank.name;

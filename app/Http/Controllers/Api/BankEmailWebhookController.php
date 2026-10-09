@@ -71,23 +71,69 @@ class BankEmailWebhookController extends Controller
         }
 
         $prefix = env('BANK_PREFIX', 'naptien');
+        $user = null;
 
-        // 3. Trích xuất User ID từ nội dung chuyển khoản
-        $userId = get_id_bank($prefix, $content);
+        // 3. Trích xuất User từ nội dung chuyển khoản (hỗ trợ email, tên tài khoản hoặc ID)
+        // 3.1. Thử tìm theo ID số trước (nếu khách chuyển naptien <id>)
+        $numericId = get_id_bank($prefix, $content);
+        if ($numericId <= 0 && preg_match('/' . preg_quote($prefix, '/') . '\s*(\d+)/i', $content, $m)) {
+            $numericId = (int) $m[1];
+        }
+        if ($numericId > 0) {
+            $user = User::find($numericId);
+        }
 
-        // Fallback kiểm tra nếu khách viết dính hoặc có định dạng đặc biệt
-        if ($userId <= 0) {
-            if (preg_match('/' . preg_quote($prefix, '/') . '\s*(\d+)/i', $content, $m)) {
-                $userId = (int) $m[1];
+        // 3.2. Nếu chưa tìm thấy, trích xuất chuỗi ngay sau prefix (ví dụ: "naptien phung232010@gmail.com" hoặc "naptien minhthang")
+        if (!$user) {
+            $extracted = '';
+            if (preg_match('/' . preg_quote($prefix, '/') . '\s*([^\s,;]+)/i', $content, $m)) {
+                $extracted = trim($m[1]);
+            }
+
+            if (!empty($extracted)) {
+                // Thử khớp chính xác theo Email
+                $user = User::where('email', $extracted)->first();
+
+                // Thử khớp theo Username
+                if (!$user) {
+                    $user = User::where('username', $extracted)->first();
+                }
+
+                // Thử khớp theo phần đầu của email (ví dụ: "phung232010" -> phung232010@gmail.com)
+                if (!$user && !str_contains($extracted, '@')) {
+                    $user = User::where('email', 'like', $extracted . '@%')->first();
+                }
             }
         }
 
-        if ($userId <= 0) {
+        // 3.3. Quét tìm trực tiếp địa chỉ Email có trong nội dung
+        if (!$user) {
+            if (preg_match('/([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/i', $content, $m)) {
+                $user = User::where('email', $m[1])->first();
+            }
+        }
+
+        // 3.4. Quét tìm username xuất hiện trong nội dung
+        if (!$user) {
+            $cleanContent = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $content));
+            $users = User::whereNotNull('username')->get();
+            foreach ($users as $u) {
+                $cleanUser = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $u->username));
+                if (!empty($cleanUser) && strlen($cleanUser) >= 3 && str_contains($cleanContent, $cleanUser)) {
+                    $user = $u;
+                    break;
+                }
+            }
+        }
+
+        if (!$user) {
             return response()->json([
                 'status' => 'ignored',
-                'message' => "Không tìm thấy mã người dùng hợp lệ trong nội dung: \"$content\""
+                'message' => "Không tìm thấy người dùng hợp lệ từ nội dung: \"$content\""
             ], 200);
         }
+
+        $userId = $user->id;
 
         // 4. Kiểm tra mã giao dịch đã từng xử lý chưa (chống cộng tiền trùng lặp)
         if (BankDeposit::where('transaction_id', $transactionId)->exists()) {
@@ -95,15 +141,6 @@ class BankEmailWebhookController extends Controller
                 'status' => 'already_processed',
                 'message' => "Giao dịch $transactionId đã được xử lý trước đó."
             ], 200);
-        }
-
-        // 5. Tìm user
-        $user = User::find($userId);
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Không tìm thấy user với ID: $userId"
-            ], 404);
         }
 
         // 6. Thực hiện cộng tiền an toàn bằng Database Transaction
