@@ -35,5 +35,6 @@ Route::get('/ping', function () {
     return response()->json(['status' => 'pong', 'time' => time()]);
 });
 
-// Webhook tự động cộng tiền qua email ngân hàng (Google Apps Script)
+// Webhook tự động cộng tiền qua email ngân hàng (Google Apps Script, SePay, payOS)
 Route::post('/webhook/bank-email', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.bank-email');
+Route::post('/webhook/payos', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.payos');
