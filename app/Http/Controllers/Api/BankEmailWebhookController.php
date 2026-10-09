@@ -18,27 +18,31 @@ class BankEmailWebhookController extends Controller
      */
     public function handleEmailWebhook(Request $request)
     {
-        // 1. Kiểm tra secret key bảo mật (hỗ trợ X-Webhook-Secret, Authorization Apikey, body hoặc query)
-        $configuredSecret = env('BANK_EMAIL_SECRET', 'ThangCyrusBankSecure2026');
-        $authHeader = $request->header('Authorization');
-        $receivedSecret = $request->header('X-Webhook-Secret') ?: $request->input('secret') ?: $request->query('secret');
-        if (!$receivedSecret && $authHeader && preg_match('/Apikey\s+(.*)/i', $authHeader, $matches)) {
-            $receivedSecret = trim($matches[1]);
-        }
-
-        if ($receivedSecret !== $configuredSecret) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized: Sai mã bảo mật secret key.'
-            ], 401);
-        }
-
         // Lấy dữ liệu từ cả Laravel Request và raw JSON body
         $raw = json_decode($request->getContent(), true) ?: [];
 
-        // Hỗ trợ payOS kiểm tra xác thực webhook url
+        // Hỗ trợ payOS kiểm tra xác thực webhook url (ping test từ payOS)
         if ($request->has('webhookUrl') || isset($raw['webhookUrl'])) {
             return response()->json(['status' => 'success', 'message' => 'payOS Webhook URL verified'], 200);
+        }
+
+        $isPayOs = (isset($raw['data']) && isset($raw['signature'])) || $request->hasHeader('x-api-key');
+
+        // 1. Kiểm tra secret key bảo mật (nếu không phải payload có signature từ payOS)
+        if (!$isPayOs) {
+            $configuredSecret = env('BANK_EMAIL_SECRET', 'ThangCyrusBankSecure2026');
+            $authHeader = $request->header('Authorization');
+            $receivedSecret = $request->header('X-Webhook-Secret') ?: $request->input('secret') ?: $request->query('secret');
+            if (!$receivedSecret && $authHeader && preg_match('/Apikey\s+(.*)/i', $authHeader, $matches)) {
+                $receivedSecret = trim($matches[1]);
+            }
+
+            if ($receivedSecret !== $configuredSecret) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized: Sai mã bảo mật secret key.'
+                ], 401);
+            }
         }
 
         // Bỏ qua nếu là giao dịch tiền ra (SePay transferType === 'out')
