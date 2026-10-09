@@ -99,15 +99,9 @@ if (!function_exists('config_get')) {
 
         if ($memoryCache === null) {
             try {
-                $memoryCache = Cache::remember('all_system_configs', 3600, function () {
-                    return Config::pluck('value', 'key')->toArray();
-                });
+                $memoryCache = Config::pluck('value', 'key')->toArray();
             } catch (\Throwable $e) {
-                try {
-                    $memoryCache = Config::pluck('value', 'key')->toArray();
-                } catch (\Throwable $e2) {
-                    $memoryCache = [];
-                }
+                $memoryCache = [];
             }
         }
 
