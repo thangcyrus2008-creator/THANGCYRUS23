@@ -40,18 +40,6 @@
                     </div>
                     <span class="iconify deposit-modal-arrow" style="margin-left:auto;font-size:1.2rem;" data-icon="ant-design:right-outlined"></span>
                 </a>
-                @if (config_get('payment.usdt.active', true))
-                <a href="{{ route('profile.deposit-usdt') }}" class="deposit-modal-link" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:12px;border:1px solid #e5e7eb;text-decoration:none;transition:all .2s;">
-                    <div class="deposit-modal-icon-bg usdt-icon-bg" style="width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-brands fa-usps usdt-icon" style="font-size:1.4rem;"></i>
-                    </div>
-                    <div>
-                        <div class="deposit-modal-text" style="font-weight:600;font-size:0.95rem;">Nạp USDT</div>
-                        <div class="deposit-modal-subtext" style="font-size:0.78rem;margin-top:2px;">Thanh toán bằng tiền điện tử</div>
-                    </div>
-                    <span class="iconify deposit-modal-arrow" style="margin-left:auto;font-size:1.2rem;" data-icon="ant-design:right-outlined"></span>
-                </a>
-                @endif
             </div>
         </div>
     </div>

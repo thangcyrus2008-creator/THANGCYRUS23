@@ -285,8 +285,6 @@
                                 data-icon="ant-design:credit-card-outlined"></span> Nạp thẻ cào</a></li>
                     <li><a href="{{ route('profile.deposit-atm') }}"><span class="iconify"
                                 data-icon="ant-design:bank-outlined"></span> Nạp ngân hàng</a></li>
-                    <li><a href="{{ route('profile.deposit-usdt') }}"><span class="iconify"
-                                data-icon="ant-design:bank-outlined"></span> Nạp Usdt </a></li>
                 </ul>
             </li>
             <li><a href="{{ route('profile.transaction-history') }}" class="nav-link-item"><span class="iconify"
