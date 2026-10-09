@@ -9,7 +9,7 @@
 // 1. CẤU HÌNH HỆ THỐNG CỦA BRO
 const CONFIG = {
   // Điền link website của bro (khi up lên hosting/domain thì thay đổi link này)
-  WEBHOOK_URL: "https://ten-mien-cua-bro.com/api/webhook/bank-email",
+  WEBHOOK_URL: "https://shop-thangcyrus.vercel.app/api/webhook/bank-email",
   
   // Mã bí mật bảo mật (phải trùng với mã trong file .env trên web của bro)
   SECRET_KEY: "ThangCyrusBankSecure2026",

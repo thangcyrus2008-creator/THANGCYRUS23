@@ -134,3 +134,8 @@ Route::prefix('tao-website')->name('websites.')->group(function () {
     });
 });
 
+// Bank Email Webhook (Google Apps Script)
+Route::post('/webhook/bank-email', [\App\Http\Controllers\Api\BankEmailWebhookController::class, 'handleEmailWebhook']);
+Route::post('/api/webhook/bank-email', [\App\Http\Controllers\Api\BankEmailWebhookController::class, 'handleEmailWebhook']);
+
+
