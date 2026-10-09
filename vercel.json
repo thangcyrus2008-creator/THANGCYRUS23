@@ -46,7 +46,7 @@
     "APP_NAME": "THANGCYRUS GAMER",
     "APP_ENV": "production",
     "APP_KEY": "base64:LbpZQEtzRuqDV9vkqxlzzutXSU43bqdZtqJKDBgLSb8=",
-    "APP_DEBUG": "true",
+    "APP_DEBUG": "false",
     "VERCEL": "1",
     "LOG_CHANNEL": "stderr",
     "CACHE_DRIVER": "file",

@@ -25,7 +25,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 require __DIR__ . '/auth.php';
-require __DIR__ . '/admin.php';
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/nhan-xet', [HomeController::class, 'reviews'])->name('reviews');
