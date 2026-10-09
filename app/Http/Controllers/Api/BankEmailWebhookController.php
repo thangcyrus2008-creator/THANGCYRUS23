@@ -33,24 +33,27 @@ class BankEmailWebhookController extends Controller
             ], 401);
         }
 
+        // Lấy dữ liệu từ cả Laravel Request và raw JSON body
+        $raw = json_decode($request->getContent(), true) ?: [];
+
         // Hỗ trợ payOS kiểm tra xác thực webhook url
-        if ($request->has('webhookUrl')) {
+        if ($request->has('webhookUrl') || isset($raw['webhookUrl'])) {
             return response()->json(['status' => 'success', 'message' => 'payOS Webhook URL verified'], 200);
         }
 
         // Bỏ qua nếu là giao dịch tiền ra (SePay transferType === 'out')
-        if ($request->input('transferType') === 'out') {
+        if ($request->input('transferType') === 'out' || ($raw['transferType'] ?? '') === 'out') {
             return response()->json(['status' => 'ignored', 'message' => 'Giao dịch chuyển tiền đi (out)'], 200);
         }
 
         // Hỗ trợ payOS (dữ liệu giao dịch nằm trong object 'data')
-        $payosData = is_array($request->input('data')) ? $request->input('data') : [];
+        $payosData = (isset($raw['data']) && is_array($raw['data'])) ? $raw['data'] : (is_array($request->input('data')) ? $request->input('data') : []);
 
         // 2. Chuẩn hóa dữ liệu đầu vào (hỗ trợ payOS, SePay và Google Apps Script)
-        $bank = $request->input('bank') ?: $request->input('gateway') ?: ($payosData['counterAccountBankId'] ?? 'MBBank');
-        $amount = (float) ($request->input('amount') ?: $request->input('transferAmount') ?: ($payosData['amount'] ?? 0));
-        $content = trim($request->input('content') ?: $request->input('description') ?: ($payosData['description'] ?? ''));
-        $transactionId = trim((string) ($request->input('transaction_id') ?: $request->input('referenceCode') ?: $request->input('id') ?: ($payosData['reference'] ?? ($payosData['orderCode'] ?? ''))));
+        $bank = $request->input('bank') ?: $request->input('gateway') ?: ($raw['bank'] ?? ($raw['gateway'] ?? ($payosData['counterAccountBankId'] ?? 'MBBank')));
+        $amount = (float) ($request->input('amount') ?: $request->input('transferAmount') ?: ($raw['amount'] ?? ($raw['transferAmount'] ?? ($payosData['amount'] ?? 0))));
+        $content = trim((string) ($request->input('content') ?: $request->input('description') ?: ($raw['content'] ?? ($raw['description'] ?? ($payosData['description'] ?? '')))));
+        $transactionId = trim((string) ($request->input('transaction_id') ?: $request->input('referenceCode') ?: $request->input('id') ?: ($raw['transaction_id'] ?? ($raw['referenceCode'] ?? ($payosData['reference'] ?? ($payosData['orderCode'] ?? ''))))));
 
         if ($amount < 1000 || empty($content) || empty($transactionId)) {
             return response()->json([
