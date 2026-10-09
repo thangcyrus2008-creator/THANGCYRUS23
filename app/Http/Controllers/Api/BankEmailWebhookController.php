@@ -73,47 +73,35 @@ class BankEmailWebhookController extends Controller
         $prefix = env('BANK_PREFIX', 'naptien');
         $user = null;
 
-        // 3. Trích xuất User từ nội dung chuyển khoản (hỗ trợ email, tên tài khoản hoặc ID)
-        // 3.1. Thử tìm theo ID số trước (nếu khách chuyển naptien <id>)
-        $numericId = get_id_bank($prefix, $content);
-        if ($numericId <= 0 && preg_match('/' . preg_quote($prefix, '/') . '\s*(\d+)/i', $content, $m)) {
-            $numericId = (int) $m[1];
-        }
-        if ($numericId > 0) {
-            $user = User::find($numericId);
+        // Trích xuất chuỗi ngay sau prefix (ví dụ: "naptien phung232010@gmail.com" hoặc "naptien minhthang")
+        $extracted = '';
+        if (preg_match('/' . preg_quote($prefix, '/') . '\s*([^\s,;]+)/i', $content, $m)) {
+            $extracted = trim($m[1]);
         }
 
-        // 3.2. Nếu chưa tìm thấy, trích xuất chuỗi ngay sau prefix (ví dụ: "naptien phung232010@gmail.com" hoặc "naptien minhthang")
-        if (!$user) {
-            $extracted = '';
-            if (preg_match('/' . preg_quote($prefix, '/') . '\s*([^\s,;]+)/i', $content, $m)) {
-                $extracted = trim($m[1]);
+        // 3.1. Thử tìm theo Email chính xác
+        if (!empty($extracted)) {
+            $user = User::where('email', $extracted)->first();
+
+            // 3.2. Thử tìm theo Username chính xác
+            if (!$user) {
+                $user = User::where('username', $extracted)->first();
             }
 
-            if (!empty($extracted)) {
-                // Thử khớp chính xác theo Email
-                $user = User::where('email', $extracted)->first();
-
-                // Thử khớp theo Username
-                if (!$user) {
-                    $user = User::where('username', $extracted)->first();
-                }
-
-                // Thử khớp theo phần đầu của email (ví dụ: "phung232010" -> phung232010@gmail.com)
-                if (!$user && !str_contains($extracted, '@')) {
-                    $user = User::where('email', 'like', $extracted . '@%')->first();
-                }
+            // 3.3. Thử tìm theo phần đầu email (nếu ngân hàng lược bỏ đuôi @gmail.com)
+            if (!$user && !str_contains($extracted, '@')) {
+                $user = User::where('email', 'like', $extracted . '@%')->first();
             }
         }
 
-        // 3.3. Quét tìm trực tiếp địa chỉ Email có trong nội dung
+        // 3.4. Quét tìm trực tiếp địa chỉ Email đầy đủ trong toàn bộ nội dung
         if (!$user) {
             if (preg_match('/([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/i', $content, $m)) {
                 $user = User::where('email', $m[1])->first();
             }
         }
 
-        // 3.4. Quét tìm username xuất hiện trong nội dung
+        // 3.5. Quét tìm Username của các user đang có trong hệ thống
         if (!$user) {
             $cleanContent = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $content));
             $users = User::whereNotNull('username')->get();
@@ -123,6 +111,17 @@ class BankEmailWebhookController extends Controller
                     $user = $u;
                     break;
                 }
+            }
+        }
+
+        // 3.6. Cuối cùng mới fallback tìm theo ID số nguyên (nếu khách chuyển theo ID cũ như naptien 4)
+        if (!$user) {
+            $numericId = get_id_bank($prefix, $content);
+            if ($numericId <= 0 && preg_match('/' . preg_quote($prefix, '/') . '\s*(\d+)/i', $content, $m)) {
+                $numericId = (int) $m[1];
+            }
+            if ($numericId > 0) {
+                $user = User::find($numericId);
             }
         }
 
