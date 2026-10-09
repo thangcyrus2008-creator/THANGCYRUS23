@@ -438,7 +438,7 @@
         @if(isset($flashSales) && count($flashSales) > 0)
             <div class="fs-grid">
                 @foreach($flashSales as $fs)
-                    <a href="{{ $fs->is_random ? route('random.index', ['slug' => $fs->slug]) : route('category.index', ['slug' => $fs->slug]) }}" class="fs-card" style="text-decoration: none; display: block;">
+                    <a href="{{ $fs->is_random ? ('/random/' . $fs->slug) : ('/category/' . $fs->slug) }}" class="fs-card" style="text-decoration: none; display: block;">
                         <div class="fs-card-img">
                             <img src="{{ $fs->thumbnail }}" onerror="this.src='https://via.placeholder.com/200x120?text=Flash+Sale'" alt="{{ $fs->name }}">
                             @if($fs->flash_sale_old_price > 0 && $fs->flash_sale_new_price > 0 && $fs->flash_sale_old_price > $fs->flash_sale_new_price)
@@ -507,14 +507,14 @@
         <div class="container">
             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h2 class="section-title" style="margin-bottom: 0;">{{ $platform }}</h2>
-                <a href="{{ route('category.group', ['slug' => Str::slug($platform)]) }}" style="color: var(--primary); font-weight: 600; font-size: 0.95rem; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                <a href="{{ '/category/group/' . Str::slug($platform) }}" style="color: var(--primary); font-weight: 600; font-size: 0.95rem; text-decoration: none; display: flex; align-items: center; gap: 4px;">
                     Xem tất cả <span>&rarr;</span>
                 </a>
             </div>
 
             <div class="category-grid">
                 @foreach ($group as $category)
-                    <a href="{{ $category->url ?? route('category.index', ['slug' => $category->slug]) }}" class="category-card" style="position: relative;">
+                    <a href="{{ $category->url ?? ('/category/' . $category->slug) }}" class="category-card" style="position: relative;">
                         @if($category->tag_image)
                         <img src="{{ $category->tag_image }}" alt="Tag" style="position: absolute; top: 0; right: 0; max-width: 60px; z-index: 10;">
                         @endif

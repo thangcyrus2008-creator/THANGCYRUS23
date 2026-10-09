@@ -44,29 +44,23 @@ class UploadHelper
     public static function upload(UploadedFile $file, string $directory, ?string $filename = null, bool $preserveFilename = false): string
     {
         try {
-            // Trên Vercel serverless (read-only filesystem), chuyển ảnh thành base64 data URI để lưu vĩnh viễn trong database
-            if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || env('VERCEL')) {
-                $mime = $file->getMimeType() ?: 'image/jpeg';
-                $data = base64_encode(file_get_contents($file->getRealPath()));
-                return 'data:' . $mime . ';base64,' . $data;
-            }
+            // Chuyển ảnh thành base64 data URI để lưu vĩnh viễn trong TiDB Cloud database,
+            // giúp hiển thị trơn tru cả trên Localhost và Vercel mà không cần cấu hình CDN/S3
+            $mime = $file->getMimeType() ?: 'image/jpeg';
+            $data = base64_encode(file_get_contents($file->getRealPath()));
 
-            // Đảm bảo thư mục tồn tại với quyền 0755
-            self::ensureDirectoryExists('public/' . $directory);
-
-            // Tạo tên file nếu không được chỉ định
-            if (!$filename) {
-                if ($preserveFilename) {
-                    $filename = $file->getClientOriginalName();
-                } else {
-                    $filename = time() . '_' . md5($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
+            // Backup file vào storage cục bộ nếu ở local
+            if (!isset($_ENV['VERCEL']) && !isset($_SERVER['VERCEL']) && !env('VERCEL')) {
+                try {
+                    self::ensureDirectoryExists('public/' . $directory);
+                    $name = $filename ?: (time() . '_' . md5($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension());
+                    $file->storeAs('public/' . $directory, $name);
+                } catch (\Exception $ex) {
+                    // Ignore local storage error
                 }
             }
 
-            // Upload file
-            $path = $file->storeAs('public/' . $directory, $filename);
-
-            return Storage::url($path);
+            return 'data:' . $mime . ';base64,' . $data;
         } catch (\Exception $e) {
             Log::error('Error uploading file: ' . $e->getMessage());
             throw $e;

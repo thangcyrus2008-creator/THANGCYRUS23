@@ -8,7 +8,7 @@
                 @if ($categories->count() > 0)
                     @foreach ($categories as $category)
                         @if ($category->active)
-                            <a href="{{ $category->url ?? route('category.index', ['slug' => $category->slug]) }}" class="category-card" style="position: relative;">
+                            <a href="{{ $category->url ?? ('/category/' . $category->slug) }}" class="category-card" style="position: relative;">
                                 @if(isset($category->tag_image) && $category->tag_image)
                                 <img src="{{ $category->tag_image }}" alt="Tag" style="position: absolute; top: 0; right: 0; max-width: 60px; z-index: 10;">
                                 @endif

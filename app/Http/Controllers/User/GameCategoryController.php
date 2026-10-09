@@ -117,7 +117,7 @@ class GameCategoryController extends Controller
             $category->price = GameAccount::where('game_category_id', $category->id)
                 ->where('status', 'available')
                 ->min('price') ?: 0;
-            $category->url = route('category.index', ['slug' => $category->slug]);
+            $category->url = '/category/' . $category->slug;
         }
 
         $randomCategories = RandomCategory::with('gameGroup')->where('active', 1)->get();
@@ -129,7 +129,7 @@ class GameCategoryController extends Controller
             $category->price = RandomCategoryAccount::where('random_category_id', $category->id)
                 ->where('status', 'available')
                 ->value('price') ?: 0;
-            $category->url = route('random.index', ['slug' => $category->slug]);
+            $category->url = '/random/' . $category->slug;
         }
 
         $categories = $categories->concat($randomCategories);
@@ -150,7 +150,7 @@ class GameCategoryController extends Controller
             $category->price = GameAccount::where('game_category_id', $category->id)
                 ->where('status', 'available')
                 ->min('price') ?: 0;
-            $category->url = route('category.index', ['slug' => $category->slug]);
+            $category->url = '/category/' . $category->slug;
         }
 
         $randomCategories = RandomCategory::where('game_group_id', $gameGroup->id)->where('active', 1)->get();
@@ -160,7 +160,7 @@ class GameCategoryController extends Controller
             $category->price = RandomCategoryAccount::where('random_category_id', $category->id)
                 ->where('status', 'available')
                 ->value('price') ?: 0;
-            $category->url = route('random.index', ['slug' => $category->slug]);
+            $category->url = '/random/' . $category->slug;
         }
 
         $categories = $categories->concat($randomCategories);

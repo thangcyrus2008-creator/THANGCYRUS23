@@ -242,7 +242,7 @@
                         @endphp
                         
                         @foreach($navCategories as $cat)
-                        <a href="{{ route('category.index', ['slug' => $cat->slug]) }}" class="mega-menu-item">
+                        <a href="{{ '/category/' . $cat->slug }}" class="mega-menu-item">
                             @if($cat->thumbnail)
                             <img src="{{ $cat->thumbnail }}" alt="" class="mega-menu-icon">
                             @else
@@ -253,7 +253,7 @@
                         @endforeach
 
                         @foreach($navRandomCategories as $cat)
-                        <a href="{{ route('random.index', ['slug' => $cat->slug]) }}" class="mega-menu-item">
+                        <a href="{{ '/random/' . $cat->slug }}" class="mega-menu-item">
                             @if($cat->thumbnail)
                             <img src="{{ $cat->thumbnail }}" alt="" class="mega-menu-icon">
                             @else
@@ -264,7 +264,7 @@
                         @endforeach
 
                         @foreach($navServices as $cat)
-                        <a href="{{ route('service.show', ['slug' => $cat->slug]) }}" class="mega-menu-item">
+                        <a href="{{ '/service/' . $cat->slug }}" class="mega-menu-item">
                             @if($cat->thumbnail)
                             <img src="{{ $cat->thumbnail }}" alt="" class="mega-menu-icon">
                             @else

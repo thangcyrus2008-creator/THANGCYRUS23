@@ -7,6 +7,15 @@ if (!headers_sent()) {
     header('Expires: 0');
 }
 
+// Ensure correct public host and HTTPS headers from Vercel proxy
+if (isset($_SERVER['HTTP_X_FORWARDED_HOST']) && !empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+    $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_X_FORWARDED_HOST'];
+}
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+    $_SERVER['SERVER_PORT'] = '443';
+}
+
 // Ensure /tmp storage directories exist on Vercel serverless environment
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
     putenv('APP_PACKAGES_CACHE=/tmp/storage/bootstrap/packages.php');
