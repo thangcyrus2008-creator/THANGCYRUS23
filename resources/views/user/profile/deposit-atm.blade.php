@@ -385,7 +385,8 @@
 
                 btnSubmit.addEventListener('click', function() {
                     const amount = inputAmount.value;
-                    const content = selectedBank.prefix + userId;
+                    const prefixStr = (selectedBank.prefix ? selectedBank.prefix.trim() : 'naptien');
+                    const content = prefixStr + ' ' + userId;
                     
                     document.getElementById('qr-bank').textContent = selectedBank.bank;
                     document.getElementById('qr-name').textContent = selectedBank.name;
@@ -397,7 +398,11 @@
                     document.getElementById('copy-amt').setAttribute('data-clipboard-text', amount);
                     document.getElementById('copy-content').setAttribute('data-clipboard-text', content);
                     
-                    document.getElementById('qr-img').src = `https://img.vietqr.io/image/${selectedBank.bank}-${selectedBank.acc}-compact2.png?amount=${amount}&addInfo=${content}&accountName=${selectedBank.name}`;
+                    let bankCode = selectedBank.bank.trim();
+                    if (bankCode.toUpperCase().includes('MB')) {
+                        bankCode = 'MB';
+                    }
+                    document.getElementById('qr-img').src = `https://img.vietqr.io/image/${bankCode}-${selectedBank.acc}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(selectedBank.name)}`;
                     
                     stepForm.style.display = 'none';
                     stepQr.style.display = 'block';

@@ -233,9 +233,10 @@ class ProfileController extends Controller
             ->get();
 
         // Ensure each bank account has a prefix
+        $defaultPrefix = env('BANK_PREFIX', 'naptien');
         foreach ($bankAccounts as $account) {
             if (empty($account->prefix)) {
-                $account->prefix = 'NAP' . $request->user()->id;
+                $account->prefix = $defaultPrefix;
             }
         }
 
