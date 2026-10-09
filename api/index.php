@@ -16,6 +16,8 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROT
     $_SERVER['SERVER_PORT'] = '443';
 }
 $_SERVER['SCRIPT_NAME'] = '/index.php';
+$_SERVER['PHP_SELF'] = '/index.php';
+$_SERVER['SCRIPT_FILENAME'] = realpath(__DIR__ . '/../public/index.php') ?: __DIR__ . '/../public/index.php';
 
 // Ensure /tmp storage directories exist on Vercel serverless environment
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL')) {
