@@ -50,7 +50,7 @@
     "VERCEL": "1",
     "LOG_CHANNEL": "stderr",
     "CACHE_DRIVER": "file",
-    "SESSION_DRIVER": "cookie",
+    "SESSION_DRIVER": "file",
     "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
     "BANK_EMAIL_SECRET": "ThangCyrusBankSecure2026",
     "BANK_PREFIX": "naptien",
