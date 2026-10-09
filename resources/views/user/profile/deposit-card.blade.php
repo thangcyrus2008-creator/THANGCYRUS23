@@ -41,20 +41,23 @@
                                         <label for="telecom" class="form-label">
                                             <i class="fa-solid fa-building me-2"></i> Nhà mạng
                                         </label>
-                                        <select class="form-control @error('telecom') is-invalid @enderror" id="telecom"
+                                        <select class="form-control @error('telco') is-invalid @enderror" id="telecom"
                                             name="telco" required>
                                             <option value="">Chọn nhà mạng</option>
-                                            <option value="VIETTEL" {{ old('telecom') == 'VIETTEL' ? 'selected' : '' }}>
+                                            <option value="VIETTEL" {{ old('telco') == 'VIETTEL' ? 'selected' : '' }}>
                                                 Viettel
                                             </option>
-                                            <option value="MOBIFONE" {{ old('telecom') == 'MOBIFONE' ? 'selected' : '' }}>
+                                            <option value="MOBIFONE" {{ old('telco') == 'MOBIFONE' ? 'selected' : '' }}>
                                                 Mobifone
                                             </option>
-                                            <option value="VINAPHONE" {{ old('telecom') == 'VINAPHONE' ? 'selected' : '' }}>
+                                            <option value="VINAPHONE" {{ old('telco') == 'VINAPHONE' ? 'selected' : '' }}>
                                                 Vinaphone
                                             </option>
+                                            <option value="VIETNAMOBILE" {{ old('telco') == 'VIETNAMOBILE' ? 'selected' : '' }}>
+                                                Vietnamobile
+                                            </option>
                                         </select>
-                                        @error('telecom')
+                                        @error('telco')
                                             <div class="invalid-feedback">
                                                 <i class="fa-solid fa-circle-exclamation me-1"></i> {{ $message }}
                                             </div>
@@ -96,10 +99,10 @@
 
                                     <div class="form-group">
                                         <label for="serial" class="form-label">
-                                            <i class="fa-solid fa-barcode me-2"></i> Mã thẻ
+                                            <i class="fa-solid fa-barcode me-2"></i> Số Serial (Số Seri)
                                         </label>
                                         <input type="text" class="form-control @error('serial') is-invalid @enderror"
-                                            id="serial" name="serial" value="{{ old('serial') }}" required>
+                                            id="serial" name="serial" value="{{ old('serial') }}" placeholder="Nhập số seri in trên thẻ" required>
                                         @error('serial')
                                             <div class="invalid-feedback">
                                                 <i class="fa-solid fa-circle-exclamation me-1"></i> {{ $message }}
@@ -109,10 +112,10 @@
 
                                     <div class="form-group">
                                         <label for="pin" class="form-label">
-                                            <i class="fa-solid fa-key me-2"></i> Mã PIN
+                                            <i class="fa-solid fa-key me-2"></i> Mã thẻ cào (Mã PIN)
                                         </label>
                                         <input type="text" class="form-control @error('pin') is-invalid @enderror"
-                                            id="pin" name="pin" value="{{ old('pin') }}" required>
+                                            id="pin" name="pin" value="{{ old('pin') }}" placeholder="Nhập mã thẻ cào dưới lớp tráng bạc" required>
                                         @error('pin')
                                             <div class="invalid-feedback">
                                                 <i class="fa-solid fa-circle-exclamation me-1"></i> {{ $message }}

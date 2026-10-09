@@ -88,27 +88,29 @@ class CardDepositController extends Controller
 
     public function handleCallback(Request $request)
     {
+        // Ghi log chi tiết callback nhận được từ đối tác đổi thẻ
+        \Illuminate\Support\Facades\Log::info('Card Deposit Callback payload: ', $request->all());
+
         // Kiểm tra dữ liệu callback gửi về
         try {
             $validated = $request->validate([
-                'status' => 'required|integer',
-                'message' => 'nullable|string',
-                'request_id' => 'required|string',
-                'declared_value' => 'required|integer',
-                'card_value' => 'required|integer',
-                'value' => 'required|integer',
-                'amount' => 'required|integer',
-                'code' => 'required|string',
-                'serial' => 'required|string',
-                'telco' => 'required|string',
-                'trans_id' => 'required|string',
-                'callback_sign' => 'required|string',
+                'status' => 'required',
+                'message' => 'nullable',
+                'request_id' => 'required',
+                'declared_value' => 'nullable',
+                'card_value' => 'nullable',
+                'value' => 'nullable',
+                'amount' => 'nullable',
+                'code' => 'nullable',
+                'serial' => 'nullable',
+                'telco' => 'nullable',
+                'trans_id' => 'nullable',
+                'callback_sign' => 'nullable',
             ]);
-            // return response()->json($validated);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::error('Card Deposit Callback Validation Failed: ', $e->validator->errors()->toArray());
             return response()->json(['error' => $e->validator->errors()], 422);
         }
-
 
         // Xác định trạng thái nạp thẻ dựa trên `status`
         $statusMapping = [
@@ -116,12 +118,11 @@ class CardDepositController extends Controller
             2 => 'success',       // Thẻ thành công sai mệnh giá
             3 => 'error',         // Thẻ lỗi
             4 => 'error',         // Hệ thống bảo trì
-            99 => 'processing',    // Thẻ chờ xử lý
-            100 => 'error',         // Gửi thẻ thất bại
+            99 => 'processing',   // Thẻ chờ xử lý
+            100 => 'error',       // Gửi thẻ thất bại
         ];
 
-        $status = $statusMapping[$validated['status']] ?? 'error';
-        // check mã partner key
+        $status = $statusMapping[(int) $validated['status']] ?? 'error';
 
         $cardDeposit = CardDeposit::with('user')->where('request_id', $validated['request_id'])->first();
 
@@ -143,16 +144,21 @@ class CardDepositController extends Controller
         // Sử dụng transaction để đảm bảo tính toàn vẹn dữ liệu
         DB::beginTransaction();
         try {
-            // Cập nhật thông tin nạp thẻ
-            $amount = $validated['card_value'];
-            if ($validated['status'] == 2) {
+            // Lấy mệnh giá thực tế của thẻ (hỗ trợ card_value, value hoặc declared_value)
+            $actualCardValue = (int) ($request->input('card_value') ?: ($request->input('value') ?: ($request->input('declared_value') ?: $cardDeposit->amount)));
+            $amount = $actualCardValue;
+
+            $discountPercent = (float) config_get('payment.card.discount_percent', 20);
+
+            if ((int) $validated['status'] === 2) {
                 $amount = $amount * 0.5; // Nhận 50% mệnh giá thực vì sai mệnh giá
-            } else if ($validated['status'] == 1) {
-                $amount = $amount - $amount * config_get('payment.card.discount_percent') / 100;
+            } else if ((int) $validated['status'] === 1) {
+                $amount = $amount - ($amount * $discountPercent / 100);
             }
-            $cardDeposit->received_amount = $amount; // Mệnh giá thực của thẻ
+
+            $cardDeposit->received_amount = $amount; // Số tiền thực nhận sau chiết khấu
             $cardDeposit->status = $status;
-            $cardDeposit->response = json_encode($validated); // Lưu toàn bộ response
+            $cardDeposit->response = json_encode($request->all()); // Lưu toàn bộ response
             $cardDeposit->save();
 
                 // Nạp tiền thành công
