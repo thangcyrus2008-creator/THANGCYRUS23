@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\InvalidStateException;
 use Illuminate\Support\Facades\Log;
 
 class FacebookController extends Controller
@@ -51,7 +50,7 @@ class FacebookController extends Controller
         }
 
         try {
-            return Socialite::driver('facebook')->redirect();
+            return Socialite::driver('facebook')->stateless()->redirect();
         } catch (\Throwable $e) {
             Log::error('Facebook redirect error: ' . $e->getMessage());
             return redirect()->route('login')->with('error', 'Không thể chuyển hướng đến Facebook: ' . $e->getMessage());
@@ -73,11 +72,7 @@ class FacebookController extends Controller
         $this->configureDriver();
 
         try {
-            try {
-                $facebookUser = Socialite::driver('facebook')->user();
-            } catch (InvalidStateException $e) {
-                $facebookUser = Socialite::driver('facebook')->stateless()->user();
-            }
+            $facebookUser = Socialite::driver('facebook')->stateless()->user();
 
             if (!$facebookUser || empty($facebookUser->getId())) {
                 return redirect()->route('login')->with('error', 'Không thể lấy thông tin xác thực từ Facebook.');

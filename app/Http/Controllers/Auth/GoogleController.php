@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\InvalidStateException;
 use Illuminate\Support\Facades\Log;
 
 class GoogleController extends Controller
@@ -51,7 +50,7 @@ class GoogleController extends Controller
         }
 
         try {
-            return Socialite::driver('google')->redirect();
+            return Socialite::driver('google')->stateless()->redirect();
         } catch (\Throwable $e) {
             Log::error('Google redirect error: ' . $e->getMessage());
             return redirect()->route('login')->with('error', 'Không thể chuyển hướng đến Google: ' . $e->getMessage());
@@ -73,11 +72,7 @@ class GoogleController extends Controller
         $this->configureDriver();
 
         try {
-            try {
-                $googleUser = Socialite::driver('google')->user();
-            } catch (InvalidStateException $e) {
-                $googleUser = Socialite::driver('google')->stateless()->user();
-            }
+            $googleUser = Socialite::driver('google')->stateless()->user();
 
             if (!$googleUser || empty($googleUser->getId())) {
                 return redirect()->route('login')->with('error', 'Không thể lấy thông tin xác thực từ Google.');
