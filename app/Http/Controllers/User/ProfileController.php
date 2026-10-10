@@ -424,14 +424,14 @@ class ProfileController extends Controller
                     'account_number' => 'PAYOS_PRO',
                     'amount' => $depositAmount,
                     'content' => $payosOrder ? $payosOrder->description : ('naptien #' . $orderCode),
-                    'bank' => 'MBBank (payOS)',
+                    'bank' => 'MBBank',
                 ]
             );
 
             // 4. Ghi log money_transactions
             \App\Models\MoneyTransaction::create([
                 'user_id' => $user->id,
-                'type' => 'deposit_bank',
+                'type' => 'deposit',
                 'amount' => $depositAmount,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $balanceBefore + $depositAmount,
