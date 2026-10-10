@@ -92,6 +92,22 @@ class BankEmailWebhookController extends Controller
             if (!$user && !str_contains($extracted, '@')) {
                 $user = User::where('email', 'like', $extracted . '@%')->first();
             }
+
+            // 3.3.1. Thử so khớp nếu ngân hàng lọc bỏ ký tự @ và dấu . trong email
+            if (!$user) {
+                $cleanExtracted = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $extracted));
+                if (!empty($cleanExtracted) && strlen($cleanExtracted) >= 4) {
+                    $candidateUsers = User::whereNotNull('email')->take(50)->get(['id', 'email', 'username']);
+                    foreach ($candidateUsers as $u) {
+                        $cleanEmail = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $u->email));
+                        $emailPrefix = strtolower(explode('@', $u->email)[0]);
+                        if ($cleanEmail === $cleanExtracted || str_starts_with($cleanExtracted, $emailPrefix)) {
+                            $user = $u;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // 3.4. Quét tìm trực tiếp địa chỉ Email đầy đủ trong toàn bộ nội dung

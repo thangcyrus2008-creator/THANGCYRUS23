@@ -346,7 +346,7 @@
                 let selectedBank = null;
                 @php
                     $dpUser = Auth::user();
-                    $depositIdentifier = !empty($dpUser->email) ? $dpUser->email : (!empty($dpUser->username) ? $dpUser->username : ($dpUser->id ?? ''));
+                    $depositIdentifier = !empty($dpUser->username) ? $dpUser->username : (!empty($dpUser->id) ? $dpUser->id : (!empty($dpUser->email) ? $dpUser->email : ''));
                 @endphp
                 const userIdentifier = "{{ $depositIdentifier }}";
                 
