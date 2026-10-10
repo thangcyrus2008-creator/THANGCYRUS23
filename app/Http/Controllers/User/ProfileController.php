@@ -248,6 +248,193 @@ class ProfileController extends Controller
         ]);
     }
 
+    /**
+     * Tạo hoá đơn thanh toán payOS tự động
+     */
+    public function createPayOsInvoice(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1000|max:50000000',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập!'], 401);
+        }
+
+        $amount = (int) $request->amount;
+        $userIdentifier = !empty($user->username) ? preg_replace('/[^a-zA-Z0-9]/', '', $user->username) : (string) $user->id;
+        if (empty($userIdentifier)) {
+            $userIdentifier = (string) $user->id;
+        }
+        $description = 'naptien ' . substr($userIdentifier, 0, 16);
+
+        // Mã đơn hàng là số nguyên duy nhất
+        $orderCode = intval(substr(time(), 3) . rand(10, 99));
+
+        // Lưu tạm mapping orderCode => userId vào cache trong 24h
+        \Illuminate\Support\Facades\Cache::put('payos_order_' . $orderCode, $user->id, 86400);
+
+        $clientId = env('PAYOS_CLIENT_ID') ?: config_get('payment.payos.client_id', 'c6dfed8b-6e16-4c4b-88e8-a6f4210df373');
+        $apiKey = env('PAYOS_API_KEY') ?: config_get('payment.payos.api_key', '3a1de22b-d203-4871-b66b-0255fa2e31a4');
+        $checksumKey = env('PAYOS_CHECKSUM_KEY') ?: config_get('payment.payos.checksum_key', '628863737a730ff485a253b98405c8099064b4c7937629678202879e93a9f83f');
+
+        $cancelUrl = url('/profile/deposit/atm');
+        $returnUrl = url('/profile/deposit/atm');
+
+        $data = [
+            'orderCode' => $orderCode,
+            'amount' => $amount,
+            'description' => $description,
+            'cancelUrl' => $cancelUrl,
+            'returnUrl' => $returnUrl,
+        ];
+
+        ksort($data);
+        $signStr = [];
+        foreach ($data as $k => $v) {
+            $signStr[] = "$k=$v";
+        }
+        $signString = implode('&', $signStr);
+        $signature = hash_hmac('sha256', $signString, $checksumKey);
+        $data['signature'] = $signature;
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->withHeaders([
+                'x-client-id' => $clientId,
+                'x-api-key' => $apiKey,
+                'Content-Type' => 'application/json'
+            ])->timeout(10)->post('https://api-merchant.payos.vn/v2/payment-requests', $data);
+
+            if ($response->successful() && $response->json('code') === '00') {
+                $payosData = $response->json('data');
+                return response()->json([
+                    'success' => true,
+                    'type' => 'payos',
+                    'data' => [
+                        'orderCode' => $orderCode,
+                        'amount' => $amount,
+                        'description' => $description,
+                        'accountNumber' => $payosData['accountNumber'] ?? '0919095172',
+                        'accountName' => $payosData['accountName'] ?? 'NGUYEN MINH THANG',
+                        'bank' => 'MBBank',
+                        'qrCode' => $payosData['qrCode'] ?? '',
+                        'checkoutUrl' => $payosData['checkoutUrl'] ?? '',
+                    ]
+                ]);
+            } else {
+                \Illuminate\Support\Facades\Log::warning('payOS API error: ' . $response->body());
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('payOS Connection error: ' . $e->getMessage());
+        }
+
+        // Fallback: Nếu payOS lỗi kết nối, trả về thông tin VietQR tĩnh
+        return response()->json([
+            'success' => true,
+            'type' => 'static',
+            'data' => [
+                'orderCode' => $orderCode,
+                'amount' => $amount,
+                'description' => $description,
+                'accountNumber' => '0919095172',
+                'accountName' => 'NGUYEN MINH THANG',
+                'bank' => 'MBBank',
+                'qrCode' => '',
+                'checkoutUrl' => '',
+            ]
+        ]);
+    }
+
+    /**
+     * Kiểm tra trạng thái nạp tiền (polling từ view) & tự động cộng tiền khi thanh toán thành công
+     */
+    public function checkPayOsStatus(Request $request, $orderCode)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['paid' => false], 401);
+        }
+
+        // 1. Kiểm tra xem giao dịch đã được ghi nhận trong bank_deposits chưa
+        $isPaid = \App\Models\BankDeposit::where('user_id', $user->id)
+            ->where(function ($q) use ($orderCode) {
+                $q->where('transaction_id', strval($orderCode))
+                  ->orWhere('transaction_id', 'like', "%$orderCode%")
+                  ->orWhere('content', 'like', "%$orderCode%");
+            })->exists();
+
+        if ($isPaid) {
+            return response()->json([
+                'paid' => true,
+                'balance' => number_format($user->fresh()->balance) . ' VND',
+                'raw_balance' => $user->fresh()->balance
+            ]);
+        }
+
+        // 2. Nếu chưa có trong bank_deposits, chủ động gọi payOS API kiểm tra trực tiếp
+        $clientId = env('PAYOS_CLIENT_ID') ?: config_get('payment.payos.client_id', 'c6dfed8b-6e16-4c4b-88e8-a6f4210df373');
+        $apiKey = env('PAYOS_API_KEY') ?: config_get('payment.payos.api_key', '3a1de22b-d203-4871-b66b-0255fa2e31a4');
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->withHeaders([
+                'x-client-id' => $clientId,
+                'x-api-key' => $apiKey,
+            ])->timeout(6)->get("https://api-merchant.payos.vn/v2/payment-requests/{$orderCode}");
+
+            if ($response->successful() && $response->json('code') === '00') {
+                $payosData = $response->json('data');
+                if (($payosData['status'] ?? '') === 'PAID') {
+                    // Thanh toán thành công trên payOS! Cộng tiền ngay trong Transaction
+                    \Illuminate\Support\Facades\DB::transaction(function () use ($user, $payosData, $orderCode) {
+                        $alreadyProcessed = \App\Models\BankDeposit::where('transaction_id', strval($orderCode))->exists();
+                        if ($alreadyProcessed) {
+                            return;
+                        }
+
+                        $amount = (float) ($payosData['amount'] ?? 0);
+                        if ($amount > 0) {
+                            $user->increment('balance', $amount);
+                            $user->increment('total_deposited', $amount);
+
+                            \App\Models\BankDeposit::create([
+                                'transaction_id' => strval($orderCode),
+                                'user_id' => $user->id,
+                                'account_number' => $payosData['accountNumber'] ?? 'PAYOS_PRO',
+                                'amount' => $amount,
+                                'content' => $payosData['description'] ?? ('naptien #' . $orderCode),
+                                'bank' => 'MBBank (payOS)',
+                                'status' => 'completed',
+                            ]);
+
+                            \App\Models\MoneyTransaction::create([
+                                'user_id' => $user->id,
+                                'type' => 'deposit_bank',
+                                'amount' => $amount,
+                                'balance_after' => $user->fresh()->balance,
+                                'description' => 'Nạp tiền tự động qua payOS (GD #' . $orderCode . ')',
+                            ]);
+                        }
+                    });
+
+                    return response()->json([
+                        'paid' => true,
+                        'balance' => number_format($user->fresh()->balance) . ' VND',
+                        'raw_balance' => $user->fresh()->balance
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('payOS check status exception: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'paid' => false,
+            'balance' => number_format($user->fresh()->balance) . ' VND',
+            'raw_balance' => $user->fresh()->balance
+        ]);
+    }
+
     public function depositUsdt(Request $request)
     {
         if (!\Auth::check()) { \Auth::loginUsingId(1); }

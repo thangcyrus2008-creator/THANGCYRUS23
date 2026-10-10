@@ -57,7 +57,12 @@ class BankEmailWebhookController extends Controller
         $bank = $request->input('bank') ?: $request->input('gateway') ?: ($raw['bank'] ?? ($raw['gateway'] ?? ($payosData['counterAccountBankId'] ?? 'MBBank')));
         $amount = (float) ($request->input('amount') ?: $request->input('transferAmount') ?: ($raw['amount'] ?? ($raw['transferAmount'] ?? ($payosData['amount'] ?? 0))));
         $content = trim((string) ($request->input('content') ?: $request->input('description') ?: ($raw['content'] ?? ($raw['description'] ?? ($payosData['description'] ?? '')))));
-        $transactionId = trim((string) ($request->input('transaction_id') ?: $request->input('referenceCode') ?: $request->input('id') ?: ($raw['transaction_id'] ?? ($raw['referenceCode'] ?? ($payosData['reference'] ?? ($payosData['orderCode'] ?? ''))))));
+        $orderCode = $payosData['orderCode'] ?? null;
+        if (!empty($orderCode)) {
+            $transactionId = (string) $orderCode;
+        } else {
+            $transactionId = trim((string) ($request->input('transaction_id') ?: $request->input('referenceCode') ?: $request->input('id') ?: ($raw['transaction_id'] ?? ($raw['referenceCode'] ?? ($payosData['reference'] ?? '')))));
+        }
 
         if (empty($transactionId) && !empty($payosData)) {
             $transactionId = 'PAYOS_' . time() . '_' . rand(1000, 9999);
@@ -138,6 +143,14 @@ class BankEmailWebhookController extends Controller
             }
             if ($numericId > 0) {
                 $user = User::find($numericId);
+            }
+        }
+
+        // 3.7. Nếu là đơn payOS, tìm theo cache orderCode đã liên kết
+        if (!$user && !empty($orderCode)) {
+            $cachedUserId = \Illuminate\Support\Facades\Cache::get('payos_order_' . $orderCode);
+            if ($cachedUserId) {
+                $user = User::find($cachedUserId);
             }
         }
 

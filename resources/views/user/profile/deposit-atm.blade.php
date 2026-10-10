@@ -225,6 +225,9 @@
                                             <div class="qr-result">
                                                 <div class="qr-image">
                                                     <img id="qr-img" src="" alt="QR Code">
+                                                    <div id="qr-status-indicator" style="margin-top: 14px; font-size: 0.9rem; font-weight: 600; color: #f59e0b; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                                        <i class="fas fa-spinner fa-spin"></i> <span>Đang chờ chuyển khoản...</span>
+                                                    </div>
                                                 </div>
                                                 <div class="qr-info">
                                                     <div class="info-row-qr">
@@ -256,6 +259,9 @@
                                                             <button class="copy-btn" id="copy-content" data-clipboard-text=""><i class="far fa-copy"></i> Copy</button>
                                                         </span>
                                                     </div>
+                                                    <a id="btn-payos-link" href="#" target="_blank" style="display: none; margin-top: 16px; background: #0284c7; color: #fff; padding: 12px; border-radius: 8px; font-weight: 700; text-decoration: none; text-align: center; justify-content: center; align-items: center; gap: 8px;">
+                                                        <i class="fas fa-external-link-alt"></i> Mở cổng thanh toán payOS
+                                                    </a>
                                                 </div>
                                             </div>
                                             
@@ -387,33 +393,119 @@
                     checkSubmit();
                 });
 
+                let pollInterval = null;
+
                 btnSubmit.addEventListener('click', function() {
-                    const amount = inputAmount.value;
-                    const prefixStr = (selectedBank.prefix ? selectedBank.prefix.trim() : 'naptien');
-                    const content = prefixStr + ' ' + userIdentifier;
-                    
-                    document.getElementById('qr-bank').textContent = selectedBank.bank;
-                    document.getElementById('qr-name').textContent = selectedBank.name;
-                    document.getElementById('qr-acc').textContent = selectedBank.acc;
-                    document.getElementById('qr-amount').textContent = new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
-                    document.getElementById('qr-content').textContent = content;
-                    
-                    document.getElementById('copy-acc').setAttribute('data-clipboard-text', selectedBank.acc);
-                    document.getElementById('copy-amt').setAttribute('data-clipboard-text', amount);
-                    document.getElementById('copy-content').setAttribute('data-clipboard-text', content);
-                    
-                    let bankCode = selectedBank.bank.trim();
-                    if (bankCode.toUpperCase().includes('MB')) {
-                        bankCode = 'MB';
+                    const amount = parseInt(inputAmount.value);
+                    if (!amount || amount < 10000) {
+                        alert('Vui lòng nhập số tiền từ 10.000đ trở lên!');
+                        return;
                     }
-                    document.getElementById('qr-img').src = `https://img.vietqr.io/image/${bankCode}-${selectedBank.acc}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(selectedBank.name)}`;
-                    
-                    stepForm.style.display = 'none';
-                    stepQr.style.display = 'block';
+
+                    const originalBtnHtml = btnSubmit.innerHTML;
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo hoá đơn...';
+
+                    fetch("{{ url('/profile/deposit/atm/create-invoice') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ amount: amount })
+                    })
+                    .then(r => r.json())
+                    .then(res => {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = originalBtnHtml;
+
+                        if (!res.success) {
+                            alert(res.message || 'Không thể tạo hoá đơn, vui lòng thử lại!');
+                            return;
+                        }
+
+                        const d = res.data;
+                        document.getElementById('qr-bank').textContent = d.bank || selectedBank.bank;
+                        document.getElementById('qr-name').textContent = d.accountName || selectedBank.name;
+                        document.getElementById('qr-acc').textContent = d.accountNumber || selectedBank.acc;
+                        document.getElementById('qr-amount').textContent = new Intl.NumberFormat('vi-VN').format(d.amount) + 'đ';
+                        document.getElementById('qr-content').textContent = d.description;
+
+                        document.getElementById('copy-acc').setAttribute('data-clipboard-text', d.accountNumber || selectedBank.acc);
+                        document.getElementById('copy-amt').setAttribute('data-clipboard-text', d.amount);
+                        document.getElementById('copy-content').setAttribute('data-clipboard-text', d.description);
+
+                        // Hiển thị mã QR Code
+                        const qrImg = document.getElementById('qr-img');
+                        if (d.qrCode) {
+                            qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(d.qrCode);
+                        } else {
+                            qrImg.src = `https://img.vietqr.io/image/970422-${d.accountNumber}-compact2.png?amount=${d.amount}&addInfo=${encodeURIComponent(d.description)}&accountName=${encodeURIComponent(d.accountName)}`;
+                        }
+
+                        // Link mở thẳng cổng payOS nếu có
+                        const payosLink = document.getElementById('btn-payos-link');
+                        if (d.checkoutUrl) {
+                            payosLink.href = d.checkoutUrl;
+                            payosLink.style.display = 'flex';
+                        } else {
+                            payosLink.style.display = 'none';
+                        }
+
+                        // Trạng thái chờ thanh toán
+                        const statusInd = document.getElementById('qr-status-indicator');
+                        statusInd.style.color = '#f59e0b';
+                        statusInd.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Đang chờ chuyển khoản...</span>';
+
+                        stepForm.style.display = 'none';
+                        stepQr.style.display = 'block';
+
+                        // Bắt đầu polling tự động cập nhật số dư khi thanh toán xong
+                        if (pollInterval) clearInterval(pollInterval);
+                        pollInterval = setInterval(function() {
+                            fetch("{{ url('/profile/deposit/atm/check-status') }}/" + d.orderCode)
+                                .then(r => r.json())
+                                .then(st => {
+                                    if (st.paid) {
+                                        clearInterval(pollInterval);
+                                        pollInterval = null;
+                                        statusInd.style.color = '#16a34a';
+                                        statusInd.innerHTML = '<i class="fas fa-check-circle"></i> <span>Nạp tiền thành công!</span>';
+
+                                        // Cập nhật số dư trên giao diện
+                                        const balEl = document.querySelector('.balance-value');
+                                        if (balEl && st.balance) {
+                                            balEl.textContent = st.balance;
+                                        }
+
+                                        if (typeof FuiToast !== 'undefined') {
+                                            FuiToast.success('Nạp tiền thành công! Số dư: ' + st.balance);
+                                        } else {
+                                            alert('Nạp tiền thành công! Số dư mới của bạn: ' + st.balance);
+                                        }
+
+                                        setTimeout(function() {
+                                            window.location.reload();
+                                        }, 2500);
+                                    }
+                                })
+                                .catch(err => console.log('Poll check error:', err));
+                        }, 3000);
+                    })
+                    .catch(err => {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = originalBtnHtml;
+                        alert('Lỗi kết nối khi tạo hoá đơn payOS, vui lòng thử lại!');
+                    });
                 });
                 
                 if (btnBack) {
                     btnBack.addEventListener('click', function() {
+                        if (pollInterval) {
+                            clearInterval(pollInterval);
+                            pollInterval = null;
+                        }
                         stepQr.style.display = 'none';
                         stepForm.style.display = 'block';
                     });

@@ -56,6 +56,8 @@ Route::middleware('auth')->group(function () {
        
         Route::get('/deposit/card', [ProfileController::class, 'depositCard'])->name('deposit-card');
         Route::get('/deposit/atm', [ProfileController::class, 'depositAtm'])->name('deposit-atm');
+        Route::post('/deposit/atm/create-invoice', [ProfileController::class, 'createPayOsInvoice'])->name('deposit-atm.create-invoice');
+        Route::get('/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus'])->name('deposit-atm.check-status');
         Route::get('/deposit/usdt', [ProfileController::class, 'depositUsdt'])->name('deposit-usdt');
         Route::post('/deposit/usdt', [ProfileController::class, 'processDepositUsdt']);
         Route::post('/deposit/card', [CardDepositController::class, 'processCardDeposit']);
@@ -82,6 +84,10 @@ Route::middleware('auth')->group(function () {
         });
 
     });
+    
+    // Direct deposit routes without /profile prefix
+    Route::post('/deposit/atm/create-invoice', [ProfileController::class, 'createPayOsInvoice']);
+    Route::get('/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus']);
     
     // Trả góp
     Route::get('/profile/installments', [\App\Http\Controllers\User\InstallmentController::class, 'index'])->name('profile.installments');

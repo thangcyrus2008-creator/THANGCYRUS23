@@ -31,10 +31,6 @@ Route::get('/auto-bank-deposit', function () {
     Artisan::call('fetch:mb-transactions');
 }); // Bảo vệ route bằng middleware auth
 
-Route::get('/ping', function () {
-    return response()->json(['status' => 'pong', 'time' => time()]);
-});
-
 // Webhook tự động cộng tiền qua email ngân hàng (Google Apps Script, SePay, payOS)
 Route::post('/webhook/bank-email', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.bank-email');
-Route::post('/webhook/payos', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.payos');
+Route::match(['GET', 'POST'], '/webhook/payos', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.payos');
