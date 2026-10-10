@@ -394,6 +394,7 @@ class ProfileController extends Controller
 
                         $amount = (float) ($payosData['amount'] ?? 0);
                         if ($amount > 0) {
+                            $balanceBefore = $user->balance;
                             $user->increment('balance', $amount);
                             $user->increment('total_deposited', $amount);
 
@@ -404,15 +405,16 @@ class ProfileController extends Controller
                                 'amount' => $amount,
                                 'content' => $payosData['description'] ?? ('naptien #' . $orderCode),
                                 'bank' => 'MBBank (payOS)',
-                                'status' => 'completed',
                             ]);
 
                             \App\Models\MoneyTransaction::create([
                                 'user_id' => $user->id,
                                 'type' => 'deposit_bank',
                                 'amount' => $amount,
-                                'balance_after' => $user->fresh()->balance,
+                                'balance_before' => $balanceBefore,
+                                'balance_after' => $balanceBefore + $amount,
                                 'description' => 'Nạp tiền tự động qua payOS (GD #' . $orderCode . ')',
+                                'reference_id' => strval($orderCode),
                             ]);
                         }
                     });
