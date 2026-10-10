@@ -84,16 +84,16 @@ Route::middleware('auth')->group(function () {
 
     });
     
-    // Public check status routes for polling without auth requirement
-    Route::get('/profile/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus'])->name('profile.deposit-atm.check-status');
-    Route::get('/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus'])->name('deposit-atm.check-status');
-    Route::post('/deposit/atm/create-invoice', [ProfileController::class, 'createPayOsInvoice']);
-    
     // Trả góp
     Route::get('/profile/installments', [\App\Http\Controllers\User\InstallmentController::class, 'index'])->name('profile.installments');
     Route::post('/installment/{id}/create', [\App\Http\Controllers\User\InstallmentController::class, 'create'])->name('installment.create');
     Route::post('/installment/{id}/pay', [\App\Http\Controllers\User\InstallmentController::class, 'pay'])->name('installment.pay');
 });
+
+// Public check status routes for polling without auth requirement
+Route::get('/profile/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus'])->name('profile.deposit-atm.check-status');
+Route::get('/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus'])->name('deposit-atm.check-status');
+Route::get('/api/deposit/atm/check-status/{orderCode}', [ProfileController::class, 'checkPayOsStatus']);
 Route::prefix('category')->name('category.')->group(function () {
     Route::get('/', [GameCategoryController::class, 'showAll'])->name('show-all');
     Route::get('/group/{slug}', [GameCategoryController::class, 'showGroup'])->name('group');
