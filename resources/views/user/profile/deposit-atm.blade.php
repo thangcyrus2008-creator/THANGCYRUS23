@@ -464,34 +464,38 @@
                         // Bắt đầu polling tự động cập nhật số dư khi thanh toán xong
                         if (pollInterval) clearInterval(pollInterval);
                         pollInterval = setInterval(function() {
-                            fetch("{{ url('/profile/deposit/atm/check-status') }}/" + d.orderCode)
-                                .then(r => r.json())
-                                .then(st => {
-                                    if (st.paid) {
-                                        clearInterval(pollInterval);
-                                        pollInterval = null;
-                                        statusInd.style.color = '#16a34a';
-                                        statusInd.innerHTML = '<i class="fas fa-check-circle"></i> <span>Nạp tiền thành công!</span>';
+                            fetch("{{ url('/profile/deposit/atm/check-status') }}/" + d.orderCode, {
+                                method: 'GET',
+                                headers: { 'Accept': 'application/json' },
+                                credentials: 'same-origin'
+                            })
+                            .then(r => r.json())
+                            .then(st => {
+                                if (st.paid) {
+                                    clearInterval(pollInterval);
+                                    pollInterval = null;
+                                    statusInd.style.color = '#16a34a';
+                                    statusInd.innerHTML = '<i class="fas fa-check-circle"></i> <span>Nạp tiền thành công!</span>';
 
-                                        // Cập nhật số dư trên giao diện
-                                        const balEl = document.querySelector('.balance-value');
-                                        if (balEl && st.balance) {
-                                            balEl.textContent = st.balance;
-                                        }
-
-                                        if (typeof FuiToast !== 'undefined') {
-                                            FuiToast.success('Nạp tiền thành công! Số dư: ' + st.balance);
-                                        } else {
-                                            alert('Nạp tiền thành công! Số dư mới của bạn: ' + st.balance);
-                                        }
-
-                                        setTimeout(function() {
-                                            window.location.reload();
-                                        }, 2500);
+                                    // Cập nhật số dư trên giao diện
+                                    const balEl = document.querySelector('.balance-value');
+                                    if (balEl && st.balance) {
+                                        balEl.textContent = st.balance;
                                     }
-                                })
-                                .catch(err => console.log('Poll check error:', err));
-                        }, 3000);
+
+                                    if (typeof FuiToast !== 'undefined') {
+                                        FuiToast.success('Nạp tiền thành công! Số dư: ' + st.balance);
+                                    } else {
+                                        alert('Nạp tiền thành công! Số dư mới của bạn: ' + st.balance);
+                                    }
+
+                                    setTimeout(function() {
+                                        window.location.reload();
+                                    }, 2000);
+                                }
+                            })
+                            .catch(err => console.log('Poll check error:', err));
+                        }, 2000);
                     })
                     .catch(err => {
                         btnSubmit.disabled = false;

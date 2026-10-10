@@ -20,13 +20,16 @@ class BankEmailWebhookController extends Controller
     {
         // Lấy dữ liệu từ cả Laravel Request và raw JSON body
         $raw = json_decode($request->getContent(), true) ?: [];
+        if (empty($raw)) {
+            $raw = $request->all();
+        }
 
         // Hỗ trợ payOS kiểm tra xác thực webhook url (ping test từ payOS)
         if ($request->has('webhookUrl') || isset($raw['webhookUrl'])) {
             return response()->json(['status' => 'success', 'message' => 'payOS Webhook URL verified'], 200);
         }
 
-        $isPayOs = (isset($raw['data']) && isset($raw['signature'])) || $request->hasHeader('x-api-key');
+        $isPayOs = $request->is('*payos*') || (isset($raw['data']) && isset($raw['signature'])) || $request->hasHeader('x-api-key');
 
         // 1. Kiểm tra secret key bảo mật (nếu không phải payload có signature từ payOS)
         if (!$isPayOs) {
@@ -52,12 +55,23 @@ class BankEmailWebhookController extends Controller
 
         // Hỗ trợ payOS (dữ liệu giao dịch nằm trong object 'data')
         $payosData = (isset($raw['data']) && is_array($raw['data'])) ? $raw['data'] : (is_array($request->input('data')) ? $request->input('data') : []);
+        $orderCode = $payosData['orderCode'] ?? null;
+        $amount = (float) ($request->input('amount') ?: $request->input('transferAmount') ?: ($raw['amount'] ?? ($raw['transferAmount'] ?? ($payosData['amount'] ?? 0))));
+
+        // Nếu là payOS và có orderCode, ưu tiên hoàn tất qua ProfileController::completePayOsOrder
+        if (!empty($orderCode) && $amount >= 1000) {
+            $completed = \App\Http\Controllers\User\ProfileController::completePayOsOrder($orderCode, $amount);
+            if ($completed) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Cộng tiền tự động payOS thành công!'
+                ], 200);
+            }
+        }
 
         // 2. Chuẩn hóa dữ liệu đầu vào (hỗ trợ payOS, SePay và Google Apps Script)
         $bank = $request->input('bank') ?: $request->input('gateway') ?: ($raw['bank'] ?? ($raw['gateway'] ?? ($payosData['counterAccountBankId'] ?? 'MBBank')));
-        $amount = (float) ($request->input('amount') ?: $request->input('transferAmount') ?: ($raw['amount'] ?? ($raw['transferAmount'] ?? ($payosData['amount'] ?? 0))));
         $content = trim((string) ($request->input('content') ?: $request->input('description') ?: ($raw['content'] ?? ($raw['description'] ?? ($payosData['description'] ?? '')))));
-        $orderCode = $payosData['orderCode'] ?? null;
         if (!empty($orderCode)) {
             $transactionId = (string) $orderCode;
         } else {

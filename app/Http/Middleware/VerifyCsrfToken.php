@@ -16,6 +16,7 @@ class VerifyCsrfToken extends Middleware
         '*bank-email*',
         '*callback*',
         '*discount-codes*',
+        '*deposit/atm*',
         'api/*',
         'logout',
         '*/logout',

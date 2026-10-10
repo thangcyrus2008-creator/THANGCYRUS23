@@ -272,7 +272,23 @@ class ProfileController extends Controller
         // Mã đơn hàng là số nguyên duy nhất
         $orderCode = intval(substr(time(), 3) . rand(10, 99));
 
-        // Lưu tạm mapping orderCode => userId vào cache trong 24h
+        // Lưu đơn hàng vào database TiDB Cloud để dùng chung cho mọi serverless instance
+        try {
+            \Illuminate\Support\Facades\DB::table('payos_orders')->updateOrInsert(
+                ['order_code' => $orderCode],
+                [
+                    'user_id' => $user->id,
+                    'amount' => $amount,
+                    'description' => $description,
+                    'status' => 'PENDING',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        } catch (\Throwable $ex) {
+            \Illuminate\Support\Facades\Log::warning('Lưu payos_orders error: ' . $ex->getMessage());
+        }
+
         \Illuminate\Support\Facades\Cache::put('payos_order_' . $orderCode, $user->id, 86400);
 
         $clientId = env('PAYOS_CLIENT_ID') ?: config_get('payment.payos.client_id', 'c6dfed8b-6e16-4c4b-88e8-a6f4210df373');
@@ -347,24 +363,135 @@ class ProfileController extends Controller
     }
 
     /**
+     * Hoàn tất cộng tiền cho đơn payOS (Dùng chung cho Webhook và Polling)
+     */
+    public static function completePayOsOrder($orderCode, $amount = null)
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($orderCode, $amount) {
+            $payosOrder = \Illuminate\Support\Facades\DB::table('payos_orders')->where('order_code', $orderCode)->lockForUpdate()->first();
+            
+            $userId = $payosOrder ? $payosOrder->user_id : \Illuminate\Support\Facades\Cache::get('payos_order_' . $orderCode);
+            if (!$userId) {
+                return false;
+            }
+
+            $user = \App\Models\User::lockForUpdate()->find($userId);
+            if (!$user) {
+                return false;
+            }
+
+            // Kiểm tra tránh cộng trùng
+            if ($payosOrder && $payosOrder->status === 'PAID') {
+                return true;
+            }
+            if (\App\Models\BankDeposit::where('transaction_id', strval($orderCode))->exists()) {
+                return true;
+            }
+
+            $depositAmount = $amount ?: ($payosOrder ? (float)$payosOrder->amount : 0);
+            if ($depositAmount <= 0) {
+                return false;
+            }
+
+            // 1. Đánh dấu PAID trong payos_orders
+            if ($payosOrder) {
+                \Illuminate\Support\Facades\DB::table('payos_orders')->where('order_code', $orderCode)->update([
+                    'status' => 'PAID',
+                    'updated_at' => now(),
+                ]);
+            } else {
+                \Illuminate\Support\Facades\DB::table('payos_orders')->insert([
+                    'order_code' => $orderCode,
+                    'user_id' => $user->id,
+                    'amount' => $depositAmount,
+                    'description' => 'naptien #' . $orderCode,
+                    'status' => 'PAID',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // 2. Cộng số dư tài khoản
+            $balanceBefore = (float)$user->balance;
+            $user->increment('balance', $depositAmount);
+            $user->increment('total_deposited', $depositAmount);
+
+            // 3. Ghi log bank_deposits
+            \App\Models\BankDeposit::updateOrCreate(
+                ['transaction_id' => strval($orderCode)],
+                [
+                    'user_id' => $user->id,
+                    'account_number' => 'PAYOS_PRO',
+                    'amount' => $depositAmount,
+                    'content' => $payosOrder ? $payosOrder->description : ('naptien #' . $orderCode),
+                    'bank' => 'MBBank (payOS)',
+                ]
+            );
+
+            // 4. Ghi log money_transactions
+            \App\Models\MoneyTransaction::create([
+                'user_id' => $user->id,
+                'type' => 'deposit_bank',
+                'amount' => $depositAmount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceBefore + $depositAmount,
+                'description' => 'Nạp tiền tự động qua payOS (GD #' . $orderCode . ')',
+                'reference_id' => strval($orderCode),
+            ]);
+
+            // 5. Hoa hồng đại lý nếu có
+            if ($user->referrer_id) {
+                $referrer = \App\Models\User::find($user->referrer_id);
+                if ($referrer) {
+                    $commission = (int) ($depositAmount * 0.10);
+                    if ($commission > 0) {
+                        $referrer->increment('balance', $commission);
+                        $referrer->increment('total_commission', $commission);
+                        \App\Models\AffiliateHistory::create([
+                            'referrer_id' => $referrer->id,
+                            'referred_id' => $user->id,
+                            'commission_amount' => $commission,
+                            'type' => 'deposit',
+                            'description' => "Hoa hồng nạp tiền từ thành viên {$user->username} (10%)"
+                        ]);
+                    }
+                }
+            }
+
+            return true;
+        });
+    }
+
+    /**
      * Kiểm tra trạng thái nạp tiền (polling từ view) & tự động cộng tiền khi thanh toán thành công
      */
     public function checkPayOsStatus(Request $request, $orderCode)
     {
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json(['paid' => false], 401);
+        $payosOrder = \Illuminate\Support\Facades\DB::table('payos_orders')->where('order_code', $orderCode)->first();
+        $isPaid = false;
+        $user = null;
+
+        if ($payosOrder) {
+            $user = \App\Models\User::find($payosOrder->user_id);
+            if ($payosOrder->status === 'PAID') {
+                $isPaid = true;
+            }
         }
 
-        // 1. Kiểm tra xem giao dịch đã được ghi nhận trong bank_deposits chưa
-        $isPaid = \App\Models\BankDeposit::where('user_id', $user->id)
-            ->where(function ($q) use ($orderCode) {
-                $q->where('transaction_id', strval($orderCode))
-                  ->orWhere('transaction_id', 'like', "%$orderCode%")
-                  ->orWhere('content', 'like', "%$orderCode%");
-            })->exists();
+        if (!$user && Auth::check()) {
+            $user = Auth::user();
+        }
 
-        if ($isPaid) {
+        if (!$isPaid && $user) {
+            $isPaid = \App\Models\BankDeposit::where('user_id', $user->id)
+                ->where(function ($q) use ($orderCode) {
+                    $q->where('transaction_id', strval($orderCode))
+                      ->orWhere('transaction_id', 'like', "%$orderCode%")
+                      ->orWhere('content', 'like', "%$orderCode%");
+                })->exists();
+        }
+
+        if ($isPaid && $user) {
             return response()->json([
                 'paid' => true,
                 'balance' => number_format($user->fresh()->balance) . ' VND',
@@ -372,7 +499,7 @@ class ProfileController extends Controller
             ]);
         }
 
-        // 2. Nếu chưa có trong bank_deposits, chủ động gọi payOS API kiểm tra trực tiếp
+        // Nếu chưa PAID, chủ động truy vấn payOS API xác thực trạng thái
         $clientId = env('PAYOS_CLIENT_ID') ?: config_get('payment.payos.client_id', 'c6dfed8b-6e16-4c4b-88e8-a6f4210df373');
         $apiKey = env('PAYOS_API_KEY') ?: config_get('payment.payos.api_key', '3a1de22b-d203-4871-b66b-0255fa2e31a4');
 
@@ -385,44 +512,17 @@ class ProfileController extends Controller
             if ($response->successful() && $response->json('code') === '00') {
                 $payosData = $response->json('data');
                 if (($payosData['status'] ?? '') === 'PAID') {
-                    // Thanh toán thành công trên payOS! Cộng tiền ngay trong Transaction
-                    \Illuminate\Support\Facades\DB::transaction(function () use ($user, $payosData, $orderCode) {
-                        $alreadyProcessed = \App\Models\BankDeposit::where('transaction_id', strval($orderCode))->exists();
-                        if ($alreadyProcessed) {
-                            return;
-                        }
+                    // Thanh toán thành công trên payOS! Gọi hàm hoàn tất đơn hàng tức thì
+                    self::completePayOsOrder($orderCode, (float) ($payosData['amount'] ?? 0));
 
-                        $amount = (float) ($payosData['amount'] ?? 0);
-                        if ($amount > 0) {
-                            $balanceBefore = $user->balance;
-                            $user->increment('balance', $amount);
-                            $user->increment('total_deposited', $amount);
-
-                            \App\Models\BankDeposit::create([
-                                'transaction_id' => strval($orderCode),
-                                'user_id' => $user->id,
-                                'account_number' => $payosData['accountNumber'] ?? 'PAYOS_PRO',
-                                'amount' => $amount,
-                                'content' => $payosData['description'] ?? ('naptien #' . $orderCode),
-                                'bank' => 'MBBank (payOS)',
-                            ]);
-
-                            \App\Models\MoneyTransaction::create([
-                                'user_id' => $user->id,
-                                'type' => 'deposit_bank',
-                                'amount' => $amount,
-                                'balance_before' => $balanceBefore,
-                                'balance_after' => $balanceBefore + $amount,
-                                'description' => 'Nạp tiền tự động qua payOS (GD #' . $orderCode . ')',
-                                'reference_id' => strval($orderCode),
-                            ]);
-                        }
-                    });
+                    $freshUser = $user ? $user->fresh() : ($payosOrder ? \App\Models\User::find($payosOrder->user_id) : null);
+                    $balanceStr = $freshUser ? number_format($freshUser->balance) . ' VND' : '0 VND';
+                    $rawBalance = $freshUser ? $freshUser->balance : 0;
 
                     return response()->json([
                         'paid' => true,
-                        'balance' => number_format($user->fresh()->balance) . ' VND',
-                        'raw_balance' => $user->fresh()->balance
+                        'balance' => $balanceStr,
+                        'raw_balance' => $rawBalance
                     ]);
                 }
             }
@@ -430,10 +530,11 @@ class ProfileController extends Controller
             \Illuminate\Support\Facades\Log::warning('payOS check status exception: ' . $e->getMessage());
         }
 
+        $currentBalance = $user ? number_format($user->fresh()->balance) . ' VND' : '0 VND';
         return response()->json([
             'paid' => false,
-            'balance' => number_format($user->fresh()->balance) . ' VND',
-            'raw_balance' => $user->fresh()->balance
+            'balance' => $currentBalance,
+            'raw_balance' => $user ? $user->fresh()->balance : 0
         ]);
     }
 
