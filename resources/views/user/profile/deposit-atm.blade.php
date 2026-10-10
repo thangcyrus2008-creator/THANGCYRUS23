@@ -464,7 +464,7 @@
                         // Bắt đầu polling tự động cập nhật số dư khi thanh toán xong
                         if (pollInterval) clearInterval(pollInterval);
                         pollInterval = setInterval(function() {
-                            fetch("{{ url('/profile/deposit/atm/check-status') }}/" + d.orderCode, {
+                            fetch("{{ url('/api/deposit/atm/check-status') }}/" + d.orderCode, {
                                 method: 'GET',
                                 headers: { 'Accept': 'application/json' },
                                 credentials: 'same-origin'

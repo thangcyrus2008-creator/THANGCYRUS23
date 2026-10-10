@@ -34,3 +34,4 @@ Route::get('/auto-bank-deposit', function () {
 // Webhook tự động cộng tiền qua email ngân hàng (Google Apps Script, SePay, payOS)
 Route::post('/webhook/bank-email', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.bank-email');
 Route::match(['GET', 'POST'], '/webhook/payos', [BankEmailWebhookController::class, 'handleEmailWebhook'])->name('webhook.payos');
+Route::get('/deposit/atm/check-status/{orderCode}', [\App\Http\Controllers\User\ProfileController::class, 'checkPayOsStatus']);
